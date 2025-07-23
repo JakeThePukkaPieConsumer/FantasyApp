@@ -1,6 +1,6 @@
 async function loadUsers() {
     try {
-        const res = await fetch('/api/user/users', {
+        const res = await fetch('/api/auth/user/users', {  // Fixed path
             cache: 'no-store'
         });
         const users = await res.json();
@@ -28,12 +28,12 @@ async function checkAuthStatus() {
     const token = localStorage.getItem('token');
     if (token) {
         try {
-            const res = await fetch('/api/user/verify', {
+            const res = await fetch('/api/auth/user/verify', {  // Fixed path
                 headers: { 'Authorization': `Bearer ${token}`, cache: 'no-store' }
             });
             
             if (res.ok) {
-                window.location.href = 'dashboard.html';
+                window.location.href = '/dashboard.html';  // Fixed path
             } else {
                 localStorage.removeItem('token');
             }
@@ -68,7 +68,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
     }
 
     try {
-        const res = await fetch('/api/user/login', {
+        const res = await fetch('/api/auth/user/login', {  // Fixed path
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, pin }),
@@ -84,7 +84,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
         }
 
         localStorage.setItem('token', data.token);
-        window.location.href = 'dashboard.html';
+        window.location.href = '/dashboard.html';  // Fixed path
     } catch (err) {
         error.textContent = 'Something went wrong. Please try again.';
         error.style.display = 'block';

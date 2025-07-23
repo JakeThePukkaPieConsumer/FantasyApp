@@ -10,7 +10,7 @@ async function checkAuthentication() {
 
     try {
         console.log('Verifying token...');
-        const res = await fetch('/api/user/verify', {
+        const res = await fetch('/api/auth/user/verify', {  // Fixed path
             method: 'GET',
             headers: { 
                 'Authorization': `Bearer ${token}`,
@@ -93,7 +93,7 @@ function hideLoading() {
 function logout() {
     console.log('Logging out user');
     localStorage.removeItem('token');
-    window.location.href = '/login';
+    window.location.href = '/login.html';  // Fixed to include .html
 }
 
 // Check authentication when page loads

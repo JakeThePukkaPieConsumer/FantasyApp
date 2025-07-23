@@ -40,15 +40,15 @@ if (process.env.NODE_ENV === 'development') {
     app.use(morgan("dev"));
 }
 
-// Static files
-function sendFrontendFile(fileName) {
-  return (req, res) => res.sendFile(path.join(__dirname, 'src/frontend', fileName));
-}
+// Serve static files
+app.use(express.static(path.join(__dirname, '../frontend')));
 
-app.get("/login", sendFrontendFile('login.html'));
-app.get("/user/dashboard", sendFrontendFile('dashboard.html'));
-app.get("/user/admin", sendFrontendFile('admin.html'));
-app.get("/user/select-drivers", sendFrontendFile('select-drivers.html'));
+// HTML page routes - these handle direct navigation
+app.get("/", (req, res) => res.redirect('/login.html'));
+app.get("/login", (req, res) => res.redirect('/login.html'));
+app.get("/user/dashboard", (req, res) => res.redirect('/dashboard.html'));
+app.get("/user/admin", (req, res) => res.redirect('/admin.html'));
+app.get("/user/select-drivers", (req, res) => res.redirect('/select-drivers.html'));
 
 app.get("/api/health", (req, res) => {
     try {
