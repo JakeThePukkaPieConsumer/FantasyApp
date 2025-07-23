@@ -1,0 +1,5 @@
+/src/backend/config/*
+/node_modules
+
+*.json
+*.env

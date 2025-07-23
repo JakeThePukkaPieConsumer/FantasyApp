@@ -1,0 +1,220 @@
+:root {
+    --primary-color: #3b82f6;
+    --primary-dark: #2563eb;
+    --background-color: #f5f5f5;
+    --header-color: #333333;
+    --text-color: #444444;
+    --input-border-color: #ffffff;
+    --error-color: #e53e3e;
+    --button-bg-logout: #ef4444;
+    --button-bg-logout-hover: #b91c1c;
+    --footer-bg: #f3f4f6;
+    --footer-border: #ccc;
+    --footer-text: #555;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--background-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+/* LOGIN STYLES */
+
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* or center, if you want vertically centered */
+    padding-top: 200px; /* space from the top */
+    height: 100vh; /* full viewport height */
+    width: 100%;
+}
+
+.login-box {
+    background-color: var(--input-border-color);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 410px;
+}
+
+.login-header {
+    display: flex;
+    flex-direction: column;
+}
+
+.login-header h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--header-color);
+}
+
+label {
+    margin: 0.5rem 0 0.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+select,
+input[type="password"] {
+    padding: 0.6rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+    color: var(--text-color);
+    background-color: white;
+}
+
+select:focus,
+input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+button#login-btn {
+    padding: 0.75rem;
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 0.5rem;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button#login-btn:hover {
+    background-color: var(--primary-dark);
+}
+
+/* DASHBOARD STYLES */
+
+#top-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: #e0f0ff;
+    border-bottom: 3px solid #99c2ff;
+    color: #1a3d7c;
+    position: sticky;
+    top: 0;
+    width: 100vw;
+    left: 0;
+    box-sizing: border-box;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(26, 61, 124, 0.15);
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevent horizontal scrollbars if any */
+}
+
+#top-footer h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--header-color);
+}
+
+#top-footer p {
+  margin: 10;
+  font-size: 0.956rem;
+  color: var(--header-color);
+}
+
+.top-footer-text-content {
+    display: flex;
+    flex-direction: column; /* stack title and budget vertically */
+    gap: 0.25rem;
+    text-align: left;
+}
+
+.top-footer-content {
+    display: flex;
+    gap: 0.75rem;
+    align-items: left;
+}
+
+/* Admin Panel Button */
+
+#admin-panel-btn {
+  display: none; /* show via JS if admin */
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+#admin-panel-btn:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Logout Button */
+#logout-btn {
+  background-color: var(--button-bg-logout);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+#logout-btn:hover {
+  background-color: var(--button-bg-logout-hover);
+}
+
+/* Unauthorized message */
+
+#unauthorized {
+  background-color: var(--input-border-color);
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  max-width: 410px;
+  text-align: center;
+  margin-top: 1rem;
+  color: var(--error-color);
+}
+
+#unauthorized h2 {
+  margin-bottom: 0.5rem;
+  color: var(--error-color);
+}
+
+#unauthorized button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  margin-top: 10px;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+#unauthorized button:hover {
+  background-color: var(--primary-dark);
+}

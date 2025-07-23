@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
+    <title>Fantasy App - Dashboard</title>
+</head>
+<body>
+    <!-- Dashboard content that shows when authenticated -->
+    <div id="dashboard" style="display: none;">
+    <div id="top-footer">
+    <div class="top-footer-text-content"> <!-- dashboard title and budget stacked -->
+        <h1>Dashboard</h1>
+        <p>Budget: £<span id="budget-display">Loading...</span></p>
+    </div>
+    <div class="top-footer-content"> <!-- buttons on right -->
+        <button id="select-driver-btn" onclick="window.location.href='select-drivers.html'">Select Drivers</button>
+        <button id="admin-panel-btn" onclick="window.location.href='admin.html'" style="display: none;">Admin Panel</button>
+        <button id="logout-btn">Logout</button>
+    </div>
+    </div>
+        <div style="padding: 2rem;">
+            <h2>Welcome to your Dashboard</h2>
+        </div>
+    </div>
+
+    <!-- Unauthorized message that shows when not logged in -->
+    <div id="unauthorized" style="display: none;">
+        <h2>Access Denied</h2>
+        <p>You must be logged in to access this page.</p>
+        <button type="button" onclick="window.location.href='login.html'">Go to Login</button>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loading" style="display: block; text-align: center; margin-top: 2rem;">
+        <p>Loading...</p>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

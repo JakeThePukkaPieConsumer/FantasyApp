@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X_UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/styles.css">
+  <title>Login</title>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-box">
+      <div class="login-header">
+        <h2>Login</h2>
+        <div id="error-message" style="color: red; margin-bottom: 1rem; display: none;"></div>
+
+        <label for="username">Name:</label>
+        <select id="username">
+          <option value="" disabled selected>Select name</option>
+        </select>
+
+        <label for="pin">Pin:</label>
+        <input type="password" id="pin" placeholder="Enter your pin" />
+
+        <button id="login-btn">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/login.js"></script>
+</body>
+</html>
