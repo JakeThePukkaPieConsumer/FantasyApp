@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
+    <title>Fantasy App - Select Drivers</title>
+</head>
+<body>
+    <!-- Driver Selection content that shows when authenticated -->
+    <div id="driver-selection" style="display: none;">
+        <header class="header">
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>Select Drivers</h1>
+                    <p>Budget: £<span id="budget-display">Loading...</span> | Used: £<span id="budget-used">0</span></p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="window.location.href='/dashboard.html'">
+                        Dashboard
+                    </button>
+                    <button id="save-team-btn" class="btn btn-success" disabled>
+                        Save Team
+                    </button>
+                    <button id="logout-btn" class="btn btn-danger">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="container" style="padding: var(--spacing-xl) var(--spacing-md);">
+            <!-- Team Summary -->
+            <div class="card" style="margin-bottom: var(--spacing-xl);">
+                <div class="card-header">
+                    <h3>Your Team</h3>
+                </div>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Drivers Selected</h3>
+                            <p class="stat-value" id="selected-count">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Budget Remaining</h3>
+                            <p class="stat-value">£<span id="budget-remaining">0</span></p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Team Value</h3>
+                            <p class="stat-value">£<span id="team-value">0</span></p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Team Status</h3>
+                            <p class="stat-value" id="team-status">Incomplete</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Filters -->
+            <div class="card" style="margin-bottom: var(--spacing-xl);">
+                <div class="card-header">
+                    <h3>Filter by Category</h3>
+                </div>
+                <div class="card-body">
+                    <div class="flex gap-md">
+                        <button class="btn btn-secondary filter-btn active" data-category="all">
+                            All Drivers
+                        </button>
+                        <button class="btn btn-secondary filter-btn" data-category="M">
+                            Category M
+                        </button>
+                        <button class="btn btn-secondary filter-btn" data-category="JS">
+                            Category JS
+                        </button>
+                        <button class="btn btn-secondary filter-btn" data-category="I">
+                            Category I
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selected Drivers -->
+            <div id="selected-drivers-section" class="card" style="margin-bottom: var(--spacing-xl); display: none;">
+                <div class="card-header">
+                    <h3>Selected Drivers</h3>
+                </div>
+                <div class="card-body">
+                    <div id="selected-drivers-grid" class="grid grid-cols-3">
+                        <!-- Selected drivers will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Drivers -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Available Drivers</h3>
+                    <div class="flex gap-sm items-center">
+                        <input type="text" id="search-drivers" placeholder="Search drivers..." style="margin: 0; width: 250px;">
+                        <button id="sort-by-value" class="btn btn-secondary btn-sm">
+                            Sort by Value
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="drivers-grid" class="grid grid-cols-4">
+                        <!-- Drivers will be populated here -->
+                    </div>
+                    <div id="no-drivers" style="display: none; text-align: center; padding: var(--spacing-xl);">
+                        <p>No drivers found matching your criteria.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unauthorized message -->
+    <div id="unauthorized" class="error-container" style="display: none;">
+        <div class="error-box">
+            <h2>Access Denied</h2>
+            <p>You must be logged in to access this page.</p>
+            <button type="button" class="btn btn-primary" onclick="window.location.href='/login.html'">
+                Go to Login
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loading" class="loading" style="display: block;">
+        <div class="spinner"></div>
+        <p>Loading drivers...</p>
+    </div>
+
+    <!-- Driver Card Template (hidden, used by JavaScript) -->
+    <template id="driver-card-template">
+        <div class="driver-card" data-driver-id="" data-categories="" data-value="">
+            <div class="driver-image-container">
+                <img class="driver-image" src="" alt="Driver photo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik01MCA1OEM1Ni42Mjc0IDU4IDYyIDUyLjYyNzQgNjIgNDZDNjIgMzkuMzcyNiA1Ni42Mjc0IDM0IDUwIDM0QzQzLjM3MjYgMzQgMzggMzkuMzcyNiAzOCA0NkMzOCA1Mi42Mjc0IDQzLjM3MjYgNTggNTAgNThaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0yNiA3NEMyNiA2NS4xNjM0IDMzLjE2MzQgNTggNDIgNThINThDNjYuODM2NiA1OCA3NCA2NS4xNjM0IDc0IDc0VjgySDI2Vjc0WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K'">
+                <div class="driver-categories">
+                    <span class="category-badge">M</span>
+                </div>
+            </div>
+            <div class="driver-info">
+                <h4 class="driver-name">Driver Name</h4>
+                <p class="driver-value">£0.00</p>
+                <p class="driver-description">Driver description...</p>
+            </div>
+            <div class="driver-actions">
+                <button class="btn btn-primary btn-sm select-driver-btn">
+                    Select Driver
+                </button>
+                <button class="btn btn-danger btn-sm remove-driver-btn" style="display: none;">
+                    Remove
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <style>
+        /* Driver-specific styles */
+        .driver-card {
+            background: var(--background-primary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-md);
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .driver-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-color);
+        }
+
+        .driver-card.selected {
+            border-color: var(--success-color);
+            background: linear-gradient(135deg, var(--background-primary) 0%, #f0fdf4 100%);
+        }
+
+        .driver-card.disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .driver-image-container {
+            position: relative;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .driver-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+            background: var(--background-tertiary);
+        }
+
+        .driver-categories {
+            position: absolute;
+            top: var(--spacing-xs);
+            right: var(--spacing-xs);
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+
+        .category-badge {
+            background: var(--primary-color);
+            color: var(--text-inverse);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .driver-info {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .driver-name {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+            color: var(--text-primary);
+        }
+
+        .driver-value {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--success-color);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .driver-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .driver-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .filter-btn.active {
+            background-color: var(--primary-color);
+            color: var(--text-inverse);
+            border-color: var(--primary-color);
+        }
+
+        @media (max-width: 1024px) {
+            .grid-cols-4 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid-cols-4,
+            .grid-cols-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grid-cols-4,
+            .grid-cols-3,
+            .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script src="js/select-drivers.js"></script>
+</body>
+</html>

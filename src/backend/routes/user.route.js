@@ -58,6 +58,41 @@ router.post('/elevate',
     })
 );
 
+// Get user statistics
+router.get('/stats',
+    authenticateToken,
+    checkRole('admin'),
+    catchAsync(async (req, res) => {
+        const [
+            totalUsers,
+            adminUsers,
+            regularUsers,
+            totalBudget
+        ] = await Promise.all([
+            User.countDocuments(),
+            User.countDocuments({ role: 'admin' }),
+            User.countDocuments({ role: 'user' }),
+            User.aggregate([
+                { $group: { _id: null, total: { $sum: '$budget' } } }
+            ])
+        ]);
+
+        res.status(200).json({
+            success: true,
+            stats: {
+                users: {
+                    total: totalUsers,
+                    admins: adminUsers,
+                    regular: regularUsers
+                },
+                budget: {
+                    total: totalBudget[0]?.total || 0
+                }
+            }
+        });
+    })
+);
+
 // Get user by id
 router.get('/:id',
     authenticateToken,
@@ -257,40 +292,5 @@ router.post('/:id/reset-pin',
         });
     })
 )
-
-// Get user statistics
-router.get('/stats',
-    authenticateToken,
-    checkRole('admin'),
-    catchAsync(async (req, res) => {
-        const [
-            totalUsers,
-            adminUsers,
-            regularUsers,
-            totalBudget
-        ] = await Promise.all([
-            User.countDocuments(),
-            User.countDocuments({ role: 'admin' }),
-            User.countDocuments({ role: 'user' }),
-            User.aggregate([
-                { $group: { _id: null, total: { $sum: '$budget' } } }
-            ])
-        ]);
-
-        res.status(200).json({
-            success: true,
-            stats: {
-                users: {
-                    total: totalUsers,
-                    admins: adminUsers,
-                    regular: regularUsers
-                },
-                budget: {
-                    total: totalBudget[0]?.total || 0
-                }
-            }
-        });
-    })
-);
 
 module.exports = router;

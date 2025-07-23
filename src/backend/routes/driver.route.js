@@ -157,7 +157,8 @@ router.get('/stats',
     authenticateToken,
     catchAsync(async (req, res) => {
         const [
-            totalDriver
+            totalDriver,
+            totalValueAgg
         ] = await Promise.all([
             Driver.countDocuments(),
             Driver.aggregate([
@@ -168,7 +169,7 @@ router.get('/stats',
         res.status(200).json({
             success: true,
             stats: {
-                users: {
+                users: {          // maybe rename 'users' to 'drivers' for clarity?
                     total: totalDriver
                 },
                 value: {

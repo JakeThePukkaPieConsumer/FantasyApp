@@ -138,13 +138,14 @@ const updateDriverValidation = [
 ];
 
 const mongoIdValidation = (paramName = 'id') => {
-    return (req, res, next) => {
-        const id = req.params[paramName];
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return next(new AppError('Invalid user ID format', 400));
-        }
-        next();
-    };
+  return (req, res, next) => {
+    const id = req.params[paramName];
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      const route = req.originalUrl || req.url;
+      return next(new AppError(`Invalid MongoID in param "${paramName}" with value "${id}" on route "${route}"`, 400));
+    }
+    next();
+  };
 };
 
 const checkElevationConfig = (req, res, next) => {

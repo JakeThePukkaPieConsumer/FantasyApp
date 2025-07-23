@@ -1,7 +1,9 @@
+// Global variables
+let currentUser = null;
+
 async function checkAuthentication() {
     const token = localStorage.getItem('token');
     
-    // Hide loading and show unauthorized if no token
     if (!token) {
         console.log('No token found');
         showUnauthorized();
@@ -10,7 +12,7 @@ async function checkAuthentication() {
 
     try {
         console.log('Verifying token...');
-        const res = await fetch('/api/auth/user/verify', {  // Fixed path
+        const res = await fetch('/api/auth/user/verify', {
             method: 'GET',
             headers: { 
                 'Authorization': `Bearer ${token}`,
@@ -37,8 +39,10 @@ async function checkAuthentication() {
             throw new Error('Invalid JSON from server');
         }
 
-        if (data.user) {
-            displayUserInfo(data.user);
+        if (data.success && data.user) {
+            currentUser = data.user;
+            await displayUserInfo(data.user);
+            await loadDashboardData();
         } else {
             console.error('No user data in response');
             throw new Error('No user data received');
@@ -51,14 +55,42 @@ async function checkAuthentication() {
     }
 }
 
-function displayUserInfo(user) {
+async function loadDashboardData() {
+    if (!currentUser) return;
+
+    try {
+        // Update budget displays
+        updateBudgetDisplays(currentUser.budget);
+        
+        // You can add more dashboard data loading here
+        // For example: load user's current team, statistics, etc.
+        
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+function updateBudgetDisplays(budget) {
+    const budgetElements = document.querySelectorAll('#budget-display, #budget-stat');
+    budgetElements.forEach(element => {
+        if (element) {
+            element.textContent = formatCurrency(budget || 0);
+        }
+    });
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-GB', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(amount);
+}
+
+async function displayUserInfo(user) {
     console.log('Displaying user info:', user);
     
     // Update budget display
-    const budgetElement = document.getElementById('budget-display');
-    if (budgetElement) {
-        budgetElement.textContent = user.budget || '0';
-    }
+    updateBudgetDisplays(user.budget);
 
     // Hide loading and unauthorized, show dashboard
     hideLoading();
@@ -69,10 +101,16 @@ function displayUserInfo(user) {
     const adminBtn = document.getElementById('admin-panel-btn');
     if (adminBtn) {
         if (user.role && user.role.toLowerCase() === 'admin') {
-            adminBtn.style.display = 'inline-block';
+            adminBtn.style.display = 'inline-flex';
         } else {
             adminBtn.style.display = 'none';
         }
+    }
+
+    // Update welcome message (if you want to personalize it)
+    const welcomeMessage = document.querySelector('.dashboard-welcome h2');
+    if (welcomeMessage) {
+        welcomeMessage.textContent = `Welcome back, ${user.username}!`;
     }
 }
 
@@ -80,7 +118,7 @@ function showUnauthorized() {
     console.log('Showing unauthorized message');
     hideLoading();
     document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('unauthorized').style.display = 'block';
+    document.getElementById('unauthorized').style.display = 'flex';
 }
 
 function hideLoading() {
@@ -92,8 +130,70 @@ function hideLoading() {
 
 function logout() {
     console.log('Logging out user');
+    
+    // Show loading state briefly
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.textContent = 'Logging out...';
+        logoutBtn.disabled = true;
+    }
+    
+    // Clear token and redirect
     localStorage.removeItem('token');
-    window.location.href = '/login.html';  // Fixed to include .html
+    
+    setTimeout(() => {
+        window.location.href = '/login.html';
+    }, 500);
+}
+
+// Placeholder function for team history
+function viewTeamHistory() {
+    alert('Team history feature coming soon!');
+    // TODO: Implement team history modal or page
+}
+
+// Add some interactivity to stat cards
+function animateStatCards() {
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach((card, index) => {
+        setTimeout(() => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100);
+        }, index * 100);
+    });
+}
+
+// Handle keyboard shortcuts
+function handleKeyboardShortcuts(event) {
+    // Alt + D for Dashboard (already on dashboard)
+    if (event.altKey && event.key === 'd') {
+        event.preventDefault();
+        console.log('Already on dashboard');
+    }
+    
+    // Alt + S for Select Drivers
+    if (event.altKey && event.key === 's') {
+        event.preventDefault();
+        window.location.href = '/select-drivers.html';
+    }
+    
+    // Alt + A for Admin (if admin)
+    if (event.altKey && event.key === 'a' && currentUser?.role === 'admin') {
+        event.preventDefault();
+        window.location.href = '/admin.html';
+    }
+    
+    // Alt + L for Logout
+    if (event.altKey && event.key === 'l') {
+        event.preventDefault();
+        logout();
+    }
 }
 
 // Check authentication when page loads
@@ -106,4 +206,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', logout);
     }
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', handleKeyboardShortcuts);
+    
+    // Animate stat cards after a short delay
+    setTimeout(animateStatCards, 1000);
 });

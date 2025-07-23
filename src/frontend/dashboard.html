@@ -9,32 +9,79 @@
 <body>
     <!-- Dashboard content that shows when authenticated -->
     <div id="dashboard" style="display: none;">
-    <div id="top-footer">
-    <div class="top-footer-text-content"> <!-- dashboard title and budget stacked -->
-        <h1>Dashboard</h1>
-        <p>Budget: £<span id="budget-display">Loading...</span></p>
-    </div>
-    <div class="top-footer-content"> 
-        <button onclick="window.location.href=window.location.origin + '/select-drivers.html'">Select Drivers</button>
-        <button id="admin-panel-btn" onclick="window.location.href='/admin.html'" style="display: none;">Admin Panel</button>
-        <button id="logout-btn">Logout</button>
-    </div>
-    </div>
-        <div style="padding: 2rem;">
-            <h2>Welcome to your Dashboard</h2>
+        <header class="header">
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>Dashboard</h1>
+                    <p>Budget: £<span id="budget-display">Loading...</span></p>
+                </div>
+                <div class="header-actions">
+                    <button id="admin-panel-btn" class="btn btn-secondary" onclick="window.location.href='/admin.html'" style="display: none;">
+                        Admin Panel
+                    </button>
+                    <button id="logout-btn" class="btn btn-danger">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="container dashboard-container">
+            <div class="dashboard-welcome">
+                <h2>Dashboard</h2>
+                <p>Manage your team and track your performance</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Available Budget</h3>
+                    <p class="stat-value">£<span id="budget-stat">0</span></p>
+                </div>
+                <div class="stat-card">
+                    <h3>Team Status</h3>
+                    <p class="stat-value" id="team-status">Not Set</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Drivers Selected</h3>
+                    <p class="stat-value" id="drivers-count">0</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Quick Actions</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="flex gap-md">
+                            <button class="btn btn-primary" onclick="window.location.href='/select-drivers.html'">
+                                Build Your Team
+                            </button>
+                            <button class="btn btn-secondary" onclick="viewTeamHistory()">
+                                View History
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Unauthorized message that shows when not logged in -->
-    <div id="unauthorized" style="display: none;">
-        <h2>Access Denied</h2>
-        <p>You must be logged in to access this page.</p>
-        <button type="button" onclick="window.location.href='/login.html'">Go to Login</button>
+    <div id="unauthorized" class="error-container" style="display: none;">
+        <div class="error-box">
+            <h2>Access Denied</h2>
+            <p>You must be logged in to access this page.</p>
+            <button type="button" class="btn btn-primary" onclick="window.location.href='/login.html'">
+                Go to Login
+            </button>
+        </div>
     </div>
 
     <!-- Loading indicator -->
-    <div id="loading" style="display: block; text-align: center; margin-top: 2rem;">
-        <p>Loading...</p>
+    <div id="loading" class="loading" style="display: block;">
+        <div class="spinner"></div>
+        <p>Loading your dashboard...</p>
     </div>
 
     <script src="js/dashboard.js"></script>
