@@ -316,8 +316,6 @@ small {
     box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.15);
 }
 
-/* Button Variants */
-
 .btn-primary {
     background-color: var(--primary-color);
     color: var(--text-inverse);
@@ -755,11 +753,11 @@ small {
 }
 
 #pin::placeholder {
-  font-family: 'Inter', sans-serif; /* match your app font */
-  font-weight: 500; /* medium weight */
-  font-size: 1rem;  /* adjust size as needed */
-  color: #999999;   /* subtle gray color */
-  opacity: 1;       /* make sure color shows properly */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 1rem;
+  color: #999999;
+  opacity: 1; 
 }
 
 .dashboard-container {
@@ -840,7 +838,6 @@ small {
     line-height: var(--line-height-tight);
 }
 
-/* Professional Admin Panel */
 .admin-content {
     padding: var(--spacing-8);
     max-width: 1400px;
@@ -1557,7 +1554,6 @@ table tbody tr:last-child td {
     }
 }
 
-/* Print Styles */
 @media print {
     .header,
     .btn,
@@ -1585,7 +1581,6 @@ table tbody tr:last-child td {
     }
 }
 
-/* Focus Styles for Accessibility */
 *:focus-visible {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
@@ -1597,7 +1592,6 @@ button:focus-visible,
     outline-offset: 4px;
 }
 
-/* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -1609,7 +1603,6 @@ button:focus-visible,
     }
 }
 
-/* High Contrast Mode */
 @media (prefers-contrast: high) {
     :root {
         --border-color: #000000;
@@ -1627,7 +1620,6 @@ button:focus-visible,
     }
 }
 
-/* Dark Mode Support (for future implementation) */
 @media (prefers-color-scheme: dark) {
     :root {
         --primary-color: #3b82f6;
@@ -1652,7 +1644,6 @@ button:focus-visible,
     }
 }
 
-/* Utility Classes */
 .sr-only {
     position: absolute;
     width: 1px;
