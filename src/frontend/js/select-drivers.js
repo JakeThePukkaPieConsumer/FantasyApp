@@ -244,10 +244,10 @@ class DriverSelection {
     }
 
     selectDriver(driver) {
-        if (this.selectedDrivers.length >= this.maxDrivers) {
-            notificationModule.warning(`You can only select ${this.maxDrivers} drivers.`);
-            return;
-        }
+    if (this.selectedDrivers.length === this.maxDrivers) {
+        notificationModule.warning(`You can only select ${this.maxDrivers} drivers.`);
+        return;
+    }
 
         const totalCost = this.getTeamValue() + driver.value;
         if (totalCost > this.currentUser.budget) {
@@ -260,7 +260,14 @@ class DriverSelection {
         this.renderDrivers();
         this.renderSelectedDrivers();
         
-        notificationModule.success(`${driver.name} added to your team!`);
+        if (this.selectedDrivers.length === this.maxDrivers) {
+            const missing = this.getMissingCategories();
+            if (missing.length > 0) {
+                notificationModule.warning(
+                    `Your team is missing driver(s) from the following category(ies): '${missing.join(', ')}.'`
+                );
+            }
+        }
     }
 
     removeDriver(driverId) {
@@ -268,11 +275,6 @@ class DriverSelection {
         this.updateTeamStats();
         this.renderDrivers();
         this.renderSelectedDrivers();
-        
-        const driver = this.drivers.find(d => d._id === driverId);
-        if (driver) {
-            notificationModule.info(`${driver.name} removed from your team.`);
-        }
     }
 
     renderSelectedDrivers() {
@@ -300,15 +302,15 @@ class DriverSelection {
         card.className = 'driver-card selected';
         card.innerHTML = `
             <div class="driver-image-container">
-                <img class="driver-image" src="${this.escapeHTML(driver.imageURL || '')}" alt="${escapeHtml(driver.name)} photo" 
+                <img class="driver-image" src="${this.escapeHTML(driver.imageURL || '')}" alt="${this.escapeHTML(driver.name)} photo" 
                      onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik01MCA1OEM1Ni42Mjc0IDU4IDYyIDUyLjYyNzQgNjIgNDZDNjIgMzkuMzcyNiA1Ni42Mjc0IDM0IDUwIDM0QzQzLjM3MjYgMzQgMzggMzkuMzcyNiAzOCA0NkMzOCA1Mi42Mjc0IDQzLjM3MjYgNTggNTAgNThaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0yNiA3NEMyNiA2NS4xNjM0IDMzLjE2MzQgNTggNDIgNThINThDNjYuODM2NiA1OCA3NCA2NS4xNjM0IDc0IDc0VjgySDI2Vjc0WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K'">
                 <div class="driver-categories">
-                    ${driver.categories.map(cat => `<span class="category-badge">${escapeHtml(cat)}</span>`).join('')}
+                    ${driver.categories.map(cat => `<span class="category-badge">${this.escapeHTML(cat)}</span>`).join('')}
                 </div>
             </div>
             <div class="driver-info">
-                <h4 class="driver-name">${escapeHtml(driver.name)}</h4>
-                <p class="driver-value">£${escapeHtml(authModule.formatCurrency(driver.value))}</p>
+                <h4 class="driver-name">${this.escapeHTML(driver.name)}</h4>
+                <p class="driver-value">£${this.escapeHTML(authModule.formatCurrency(driver.value))}</p>
             </div>
             <div class="driver-actions">
                 <button class="btn btn-danger btn-sm remove-driver-btn">
@@ -336,7 +338,8 @@ class DriverSelection {
 
         const saveBtn = document.getElementById('save-team-btn');
         if (saveBtn) {
-            saveBtn.disabled = !isComplete;
+            const hasAllCategories = this.hasRequiredCategories();
+            saveBtn.disabled = !(isComplete && hasAllCategories);
         }
     }
 
@@ -416,6 +419,36 @@ class DriverSelection {
         return this.drivers.filter(driver => 
             !this.selectedDrivers.some(selected => selected._id === driver._id)
         );
+    }
+
+    hasRequiredCategories() {
+        const required = ['M', 'JS', 'I'];
+        const present = new Set();
+
+        for (const driver of this.selectedDrivers) {
+            for (const cat of driver.categories) {
+                if (required.includes(cat)) {
+                    present.add(cat);
+                }
+            }
+        }
+
+        return required.every(cat => present.has(cat));
+    }
+
+    getMissingCategories() {
+        const required = new Set(['M', 'JS', 'I']);
+        const found = new Set();
+
+        this.selectedDrivers.forEach(driver => {
+            driver.categories.forEach(cat => {
+                if (required.has(cat)) {
+                    found.add(cat);
+                }
+            });
+        });
+
+        return [...required].filter(cat => !found.has(cat));
     }
 }
 
