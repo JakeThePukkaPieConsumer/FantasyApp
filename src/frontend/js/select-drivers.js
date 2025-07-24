@@ -184,22 +184,15 @@ class DriverSelection {
         const card = template.content.cloneNode(true);
         
         const cardElement = card.querySelector('.driver-card');
-        const image = card.querySelector('.driver-image');
         const categoriesContainer = card.querySelector('.driver-categories');
         const name = card.querySelector('.driver-name');
         const value = card.querySelector('.driver-value');
-        const description = card.querySelector('.driver-description');
         const selectBtn = card.querySelector('.select-driver-btn');
         const removeBtn = card.querySelector('.remove-driver-btn');
 
         cardElement.dataset.driverId = driver._id;
         cardElement.dataset.categories = driver.categories.join(',');
         cardElement.dataset.value = driver.value;
-
-        if (driver.imageURL) {
-            image.src = driver.imageURL;
-        }
-        image.alt = `${driver.name} photo`;
 
         categoriesContainer.innerHTML = '';
         driver.categories.forEach(category => {
@@ -211,7 +204,6 @@ class DriverSelection {
 
         name.textContent = driver.name;
         value.textContent = `£${authModule.formatCurrency(driver.value)}`;
-        description.textContent = driver.description || 'No description available.';
 
         const isSelected = this.selectedDrivers.some(d => d._id === driver._id);
         const canAfford = this.currentUser.budget - this.getTeamValue() >= driver.value;

@@ -14,9 +14,9 @@
                     <div class="header-title">
                         <h1>Select Drivers</h1>
                         <p class="header-subtitle">
-                            Budget: £<span id="budget-display">Loading...</span> 
-                            <span class="divider">|</span> 
-                            Used: £<span id="budget-used">0</span>
+                            Budget: <span class="currency-group">£<span id="budget-display">Loading</span></span>
+                        <span class="divider">|</span>
+                            Used: <span class="currency-group">£<span id="budget-used">0</span></span>
                         </p>
                     </div>
                     <div class="header-actions">
@@ -83,7 +83,7 @@
                 </div>
                 <div class="card-body">
                     <div class="flex flex-wrap gap-4 items-center justify-between">
-                        <div class="flex gap-3">
+                        <div class="flex flex-wrap">
                             <button class="btn btn-secondary filter-btn active" data-category="all">
                                 All Drivers
                             </button>
@@ -143,7 +143,7 @@
                         <!-- Drivers will be populated here -->
                     </div>
                     <div id="no-drivers" style="display: none; text-align: center; padding: var(--spacing-12);">
-                        <div class="flex flex-col items-center gap-4">
+                        <div class="flex flex-col items-center">
                             <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="text-tertiary">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.034 0-3.9.785-5.291 2.06M6.343 6.343A8 8 0 1017.657 17.657 8 8 0 006.343 6.343z"></path>
                             </svg>
@@ -185,16 +185,12 @@
     <!-- Driver Card Template (hidden, used by JavaScript) -->
     <template id="driver-card-template">
         <div class="driver-card" data-driver-id="" data-categories="" data-value="">
-            <div class="driver-image-container">
-                <img class="driver-image" src="" alt="Driver photo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik01MCA1OEM1Ni42Mjc0IDU4IDYyIDUyLjYyNzQgNjIgNDZDNjIgMzkuMzcyNiA1Ni42Mjc0IDM0IDUwIDM0QzQzLjM3MjYgMzQgMzggMzkuMzcyNiAzOCA0NkMzOCA1Mi42Mjc0IDQzLjM3MjYgNTggNTAgNThaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0yNiA3NEMyNiA2NS4xNjM0IDMzLjE2MzQgNTggNDIgNThINThDNjYuODM2NiA1OCA3NCA2NS4xNjM0IDc0IDc0VjgySDI2Vjc0WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K'">
-                <div class="driver-categories">
-                    <span class="category-badge">M</span>
-                </div>
+            <div class="driver-categories">
+                <span class="category-badge">M</span>
             </div>
             <div class="driver-info">
                 <h4 class="driver-name">Driver Name</h4>
                 <p class="driver-value">£0.00</p>
-                <p class="driver-description">Driver description...</p>
             </div>
             <div class="driver-actions">
                 <button class="btn btn-primary btn-sm select-driver-btn">
