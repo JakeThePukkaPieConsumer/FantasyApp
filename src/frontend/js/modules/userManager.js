@@ -12,6 +12,18 @@ class UserManager {
         this.loadUsers();
     }
 
+    async withElevation(callback) {
+        if (!this.elevationModule.requireElevation()) return false;
+        try {
+            const token = this.elevationModule.getElevatedToken();
+            return await callback(token);
+        } catch (error) {
+            console.error(error);
+            this.notificationModule.error(error.message);
+            return false;
+        }
+    }
+
     setupEventListeners() {
         const createUserBtn = document.getElementById('create-user-btn');
         if (createUserBtn) {
@@ -127,11 +139,12 @@ class UserManager {
         e.preventDefault();
         
         const formData = new FormData(e.target);
+        const rawPoints = formData.get('points');
         const userData = {
             username: formData.get('username'),
             role: formData.get('role'),
             budget: parseFloat(formData.get('budget')) || 0,
-            points: formData.get('points') || 0
+            points: rawPoints ? parseFloat(rawPoints) : 0
         };
 
         const pin = formData.get('pin');
@@ -189,79 +202,42 @@ class UserManager {
     }
 
     async createUser(userData) {
-        if (!this.elevationModule.requireElevation()) {
-            return false;
-        }
-
-        try {
-            const result = await this.apiModule.users.createUser(
-                userData, 
-                this.elevationModule.getElevatedToken()
-            );
-
-            if (!result.success) {
-                throw new Error(result.error);
-            }
-
+        return await this.withElevation(async (token) => {
+            const result = await this.apiModule.users.createUser(userData, token);
+            if (!result.success) throw new Error(result.error);
+            
             this.notificationModule.success('User created successfully');
             await this.loadUsers();
             return true;
-        } catch (error) {
-            console.error('Error creating user:', error);
-            this.notificationModule.error(error.message);
-            return false;
-        }
+        });
     }
 
     async updateUser(userId, userData) {
-        if (!this.elevationModule.requireElevation()) {
-            return false;
-        }
-
-        try {
+        return await this.withElevation(async (token) => {
             const result = await this.apiModule.users.updateUser(
-                userId, 
-                userData, 
-                this.elevationModule.getElevatedToken()
+                userId,
+                userData,
+                token
             );
 
-            if (!result.success) {
-                throw new Error(result.error);
-            }
+            if (!result.success) throw new Error(result.error);
 
             this.notificationModule.success('User updated successfully');
             await this.loadUsers();
-            return true;
-        } catch (error) {
-            console.error('Error updating user:', error);
-            this.notificationModule.error(error.message);
-            return false;
-        }
+            return true
+        });
     }
 
     async deleteUserById(userId) {
-        if (!this.elevationModule.requireElevation()) {
-            return false;
-        }
+        return await this.withElevation(async (token) => {
+            const result = await this.apiModule.users.deleteUser(userId, token);
 
-        try {
-            const result = await this.apiModule.users.deleteUser(
-                userId, 
-                this.elevationModule.getElevatedToken()
-            );
-
-            if (!result.success) {
-                throw new Error(result.error);
-            }
+            if (!result.success) throw new Error(result.error);
 
             this.notificationModule.success('User deleted successfully');
             await this.loadUsers();
-            return true;
-        } catch (error) {
-            console.error('Error deleting user:', error);
-            this.notificationModule.error(error.message);
-            return false;
-        }
+            return true
+        });
     }
 
     editUser(userId) {
