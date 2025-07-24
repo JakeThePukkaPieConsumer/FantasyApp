@@ -166,7 +166,7 @@ router.put('/:id',
         const userId = req.params.id;
         const updates = req.body;
 
-        const allowedUpdates = ['username', 'pin', 'budget'];
+        const allowedUpdates = ['username', 'role', 'pin', 'points', 'budget'];
         const actualUpdates = Object.keys(updates).filter(key => allowedUpdates.includes(key));
 
         if (actualUpdates.length == 0) {

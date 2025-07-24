@@ -1,5 +1,5 @@
 /src/backend/config/*
 /node_modules
+/.vscode
 
-*.json
 *.env
