@@ -4,7 +4,6 @@ class ApiModule {
         this.baseURL = '';
     }
 
-    // Get headers with auth token
     getHeaders(includeAuth = true, customHeaders = {}) {
         const headers = {
             'Content-Type': 'application/json',
@@ -95,6 +94,10 @@ class ApiModule {
 }
 
 class UserApi extends ApiModule {
+    constructor(authModule, elevationModule) {
+        super(authModule);
+        this.elevationModule = elevationModule
+    }
     async getUsers() {
         return this.get('/api/auth/user/users');
     }
@@ -123,6 +126,11 @@ class UserApi extends ApiModule {
 }
 
 class DriverApi extends ApiModule {
+    constructor(authModule, elevationModule) {
+        super(authModule)
+        this.elevationModule = elevationModule
+    }
+
     async getDrivers() {
         return this.get('/api/drivers/drivers');
     }
@@ -146,10 +154,10 @@ class DriverApi extends ApiModule {
     }
 }
 
-function createApiModules(authModule) {
+function createApiModules(authModule, elevationModule) {
     return {
-        users: new UserApi(authModule),
-        drivers: new DriverApi(authModule)
+        users: new UserApi(authModule, elevationModule),
+        drivers: new DriverApi(authModule, elevationModule)
     };
 }
 

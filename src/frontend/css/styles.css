@@ -241,8 +241,18 @@ textarea:disabled {
     opacity: 0.6;
 }
 
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+    font-family: inherit;
+    font-weight: var(--font-weight-normal);
+}
+
 input[type="password"] {
-    font-family: text-security-disc, -webkit-small-control;
+    font-family: inherit;
+    -webkit-text-security: disc; 
+    letter-spacing: 0.05em;     
 }
 
 select {

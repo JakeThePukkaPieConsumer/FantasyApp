@@ -10,7 +10,6 @@
     <title>Fantasy App - Dashboard</title>
 </head>
 <body>
-    <!-- Dashboard content that shows when authenticated -->
     <div id="dashboard" style="display: none;">
         <header class="header">
             <div class="header-content">
@@ -37,7 +36,6 @@
         </header>
 
     <div class="container dashboard-container">
-        <!-- Welcome Section -->
         <div class="dashboard-welcome">
             <div class="flex items-center justify-center mb-4">
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-primary-color/10 rounded-full">
@@ -50,7 +48,6 @@
             <p>Manage your fantasy team and track your performance</p>
         </div>
 
-    <!-- Statistics Grid -->
     <div class="stats-grid">
         <div class="stat-card">
             <div class="flex items-center justify-between mb-3">
@@ -89,9 +86,7 @@
         </div>
     </div>
 
-    <!-- Action Cards Grid -->
     <div class="grid grid-cols-2-md gap-6">
-        <!-- Quick Actions Card -->
         <div class="card">
             <div class="card-header">
                 <h3>Quick Actions</h3>
@@ -107,7 +102,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-round-pen-icon lucide-user-round-pen">
                             <path d="M2 21a8 8 0 0 1 10.821-7.487"/><path d="M21.378 16.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/><circle cx="10" cy="8" r="5"/>
                         </svg>
-                        Build Your Team
+                        Select Drivers
                     </button>
                     <button class="btn btn-secondary btn-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,7 +126,6 @@
             </div>
         </div>
 
-    <!-- Unauthorized message that shows when not logged in -->
     <div id="unauthorized" class="error-container" style="display: none;">
         <div class="error-box">
             <div class="text-center mb-6">
@@ -155,6 +149,6 @@
         <p>Loading your dashboard...</p>
     </div>
 
-    <script src="js/dashboard.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
 </body>
 </html>

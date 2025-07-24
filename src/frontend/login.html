@@ -17,12 +17,12 @@
 
         <form id="login-form">
           <label for="username">Select Your Name:</label>
-          <select id="username" required>
+          <select id="username" name="username" required>
             <option value="" disabled selected>Loading users...</option>
           </select>
 
           <label for="pin">Enter Your PIN:</label>
-          <input type="password" id="pin" placeholder="Enter your 4-digit PIN" maxlength="4" required />
+          <input type="password" id="pin" name="pin" placeholder="Enter your 4-digit PIN" maxlength="4" required />
 
           <button type="submit" id="login-btn" class="btn btn-primary btn-lg">
             <span id="login-text">Sign In</span>
@@ -33,6 +33,6 @@
     </div>
   </div>
 
-  <script src="js/login.js"></script>
+  <script type="module" src="js/login.js"></script>
 </body>
 </html>
