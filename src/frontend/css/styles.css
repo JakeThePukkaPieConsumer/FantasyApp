@@ -840,6 +840,7 @@ small {
     line-height: var(--line-height-tight);
 }
 
+/* Professional Admin Panel */
 .admin-content {
     padding: var(--spacing-8);
     max-width: 1400px;
@@ -1195,6 +1196,12 @@ table tbody tr:last-child td {
     font-size: var(--font-size-lg);
 }
 
+.search-input {
+    margin: 0;
+    width: 250px;
+    min-width: 200px;
+}
+
 .driver-card {
     background: var(--background-primary);
     border: 2px solid var(--border-light);
@@ -1435,30 +1442,10 @@ table tbody tr:last-child td {
         text-align: center;
     }
     
-    .header-content {
+    .section-header {
         flex-direction: column;
-        gap: var(--spacing-3);
-        text-align: center;
-    }
-    
-    .header-actions {
-        flex-wrap: wrap;
-        justify-content: center;
-        width: 100%;
-    }
-
-    .header-stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .header-quick-actions {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .header-quick-actions .btn {
-        width: 100%;
-        max-width: 200px;
+        gap: var(--spacing-4);
+        align-items: stretch;
     }
     
     .elevation-status {
@@ -1549,10 +1536,6 @@ table tbody tr:last-child td {
 }
 
 @media (max-width: 480px) {
-    .header-stats {
-        grid-template-columns: 1fr;
-    }
-    
     .header-title h1 {
         font-size: var(--font-size-xl);
     }
