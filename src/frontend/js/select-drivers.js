@@ -88,7 +88,7 @@ class DriverSelection {
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 this.setActiveFilter(e.target);
-+               this.filterDrivers(e.target.dataset.category);
+               this.filterDrivers(e.target.dataset.category);
             });
         });
 
