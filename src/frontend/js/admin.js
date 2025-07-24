@@ -5,7 +5,6 @@ let elevatedToken = null;
 let users = [];
 let drivers = [];
 
-// Authentication and initialization
 async function checkAuthentication() {
     const token = localStorage.getItem('token');
     
@@ -99,6 +98,32 @@ function logout() {
 }
 
 // Elevation system
+function restoreElevation() {
+    const savedToken = sessionStorage.getItem('elevatedToken');
+    if (savedToken) {
+        elevatedToken = savedToken;
+        isElevated = true;
+        updateElevationStatus();
+        showElevatedActions();
+        startElevationTimeout();
+    }
+}
+
+let elevationTimeoutId;
+
+function startElevationTimeout() {
+    if (elevationTimeoutId) clearTimeout(elevationTimeoutId);
+
+    elevationTimeoutId = setTimeout(() => {
+        isElevated = false;
+        elevatedToken = null;
+        sessionStorage.removeItem('elevatedToken');
+        updateElevationStatus();
+        hideElevatedActions();
+        showInfo('Elevation expired. Please request elevation again if needed.');
+    }, 15 * 60 * 1000); // 15 minutes
+}
+
 async function requestElevation(elevationKey) {
     const token = localStorage.getItem('token');
     
@@ -120,19 +145,16 @@ async function requestElevation(elevationKey) {
 
         elevatedToken = data.token;
         isElevated = true;
+
+        // Persist elevated token in sessionStorage
+        sessionStorage.setItem('elevatedToken', elevatedToken);
+
         updateElevationStatus();
         showElevatedActions();
         closeModal('elevation-modal');
         showSuccess('Elevation granted successfully');
 
-        // Set timeout to handle token expiration
-        setTimeout(() => {
-            isElevated = false;
-            elevatedToken = null;
-            updateElevationStatus();
-            hideElevatedActions();
-            showInfo('Elevation expired. Please request elevation again if needed.');
-        }, 15 * 60 * 1000); // 15 minutes
+        startElevationTimeout();
 
         return true;
     } catch (error) {
@@ -189,23 +211,53 @@ async function loadUsers() {
     }
 }
 
+// Render the users on the table
 function renderUsersTable() {
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
 
     users.forEach(user => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${user.username}</td>
-            <td>${user.role}</td>
-            <td>£${user.budget}</td>
-            <td>
-                <button class="btn-edit" onclick="editUser('${user._id}')">Edit</button>
-                <button class="btn-delete" onclick="deleteUser('${user._id}', '${user.username}')">Delete</button>
-            </td>
-        `;
+
+        // Create cells
+        const usernameTd = document.createElement('td');
+        usernameTd.textContent = user.username;
+
+        const roleTd = document.createElement('td');
+        roleTd.textContent = user.role;
+
+        const budgetTd = document.createElement('td');
+        budgetTd.textContent = `£${user.budget}`;
+
+        // Actions cell
+        const actionsTd = document.createElement('td');
+
+        const btnGroup = document.createElement('div');
+
+        // Edit button
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-edit btn-sm';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', () => editUser(user._id));
+
+        // Delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-delete btn-sm';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.addEventListener('click', () => deleteUser(user._id, user.username));
+
+        btnGroup.appendChild(editBtn);
+        btnGroup.appendChild(deleteBtn);
+
+        actionsTd.appendChild(btnGroup);
+
+        row.appendChild(usernameTd);
+        row.appendChild(roleTd);
+        row.appendChild(budgetTd);
+        row.appendChild(actionsTd);
+
         tbody.appendChild(row);
     });
 }
@@ -306,9 +358,11 @@ async function deleteUserById(userId) {
 
 function editUser(userId) {
     const user = users.find(u => u._id === userId);
-    if (!user) return;
+    if (!user) {
+        showError('User not found');
+        return;
+    }
 
-    // Populate form
     document.getElementById('user-modal-title').textContent = 'Edit User';
     document.getElementById('user-username').value = user.username;
     document.getElementById('user-pin').value = '';
@@ -316,9 +370,9 @@ function editUser(userId) {
     document.getElementById('user-budget').value = user.budget;
     document.getElementById('user-submit-btn').textContent = 'Update User';
 
-    // Store user ID for form submission
-    document.getElementById('user-form').dataset.userId = userId;
-    document.getElementById('user-form').dataset.mode = 'edit';
+    const form = document.getElementById('user-form');
+    form.dataset.userId = userId;
+    form.dataset.mode = 'edit';
 
     openModal('user-modal');
 }
@@ -329,7 +383,6 @@ function deleteUser(userId, username) {
     });
 }
 
-// Driver management
 async function loadDrivers() {
     const token = localStorage.getItem('token');
     
@@ -357,20 +410,47 @@ async function loadDrivers() {
 function renderDriversTable() {
     const tbody = document.getElementById('drivers-table-body');
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
 
     drivers.forEach(driver => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${driver.name}</td>
-            <td>${driver.value}</td>
-            <td>${driver.categories.join(', ')}</td>
-            <td>
-                <button class="btn-edit" onclick="editDriver('${driver._id}')">Edit</button>
-                <button class="btn-delete" onclick="deleteDriver('${driver._id}', '${driver.name}')">Delete</button>
-            </td>
-        `;
+
+        // Name
+        const nameTd = document.createElement('td');
+        nameTd.textContent = driver.name;
+        row.appendChild(nameTd);
+
+        // Value
+        const valueTd = document.createElement('td');
+        valueTd.textContent = `£${driver.value}`;
+        row.appendChild(valueTd);
+
+        // Categories
+        const catTd = document.createElement('td');
+        catTd.textContent = driver.categories.join(', ');
+        row.appendChild(catTd);
+
+        const actionsTd = document.createElement('td');
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-edit btn-sm';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', () => {
+            editDriver(driver._id);
+        });
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-delete btn-sm';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.addEventListener('click', () => {
+            deleteDriver(driver._id, driver.name);
+        });
+
+        actionsTd.appendChild(editBtn);
+        actionsTd.appendChild(deleteBtn);
+        row.appendChild(actionsTd);
+
         tbody.appendChild(row);
     });
 }
@@ -471,9 +551,11 @@ async function deleteDriverById(driverId) {
 
 function editDriver(driverId) {
     const driver = drivers.find(d => d._id === driverId);
-    if (!driver) return;
+    if (!driver) {
+        showError('Driver not found');
+        return;
+    }
 
-    // Populate form
     document.getElementById('driver-modal-title').textContent = 'Edit Driver';
     document.getElementById('driver-name').value = driver.name;
     document.getElementById('driver-value').value = driver.value;
@@ -481,15 +563,14 @@ function editDriver(driverId) {
     document.getElementById('driver-description').value = driver.description || '';
     document.getElementById('driver-submit-btn').textContent = 'Update Driver';
 
-    // Set categories
     const categoryCheckboxes = document.querySelectorAll('input[name="categories"]');
     categoryCheckboxes.forEach(checkbox => {
         checkbox.checked = driver.categories.includes(checkbox.value);
     });
 
-    // Store driver ID for form submission
-    document.getElementById('driver-form').dataset.driverId = driverId;
-    document.getElementById('driver-form').dataset.mode = 'edit';
+    const form = document.getElementById('driver-form');
+    form.dataset.driverId = driverId;
+    form.dataset.mode = 'edit';
 
     openModal('driver-modal');
 }
@@ -500,15 +581,23 @@ function deleteDriver(driverId, driverName) {
     });
 }
 
-// Modal management
 function openModal(modalId) {
-    document.getElementById(modalId).style.display = 'block';
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        const firstInput = modal.querySelector('input, select, textarea');
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 100);
+        }
+    }
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
     
-    // Reset forms when closing
     if (modalId === 'user-modal') {
         resetUserForm();
     } else if (modalId === 'driver-modal') {
@@ -518,23 +607,32 @@ function closeModal(modalId) {
 
 function resetUserForm() {
     const form = document.getElementById('user-form');
-    form.reset();
-    form.removeAttribute('data-user-id');
-    form.removeAttribute('data-mode');
-    document.getElementById('user-modal-title').textContent = 'Create User';
-    document.getElementById('user-submit-btn').textContent = 'Create User';
+    if (form) {
+        form.reset();
+        delete form.dataset.userId;
+        delete form.dataset.mode;
+        document.getElementById('user-modal-title').textContent = 'Create User';
+        document.getElementById('user-submit-btn').textContent = 'Create User';
+    }
 }
 
 function resetDriverForm() {
     const form = document.getElementById('driver-form');
-    form.reset();
-    form.removeAttribute('data-driver-id');
-    form.removeAttribute('data-mode');
-    document.getElementById('driver-modal-title').textContent = 'Create Driver';
-    document.getElementById('driver-submit-btn').textContent = 'Create Driver';
+    if (form) {
+        form.reset();
+        delete form.dataset.driverId;
+        delete form.dataset.mode;
+        document.getElementById('driver-modal-title').textContent = 'Create Driver';
+        document.getElementById('driver-submit-btn').textContent = 'Create Driver';
+    }
 }
 
-// Notification system
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function showSuccess(message) {
     showNotification(message, 'success');
 }
@@ -548,40 +646,19 @@ function showInfo(message) {
 }
 
 function showNotification(message, type) {
-    // Create notification element
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    });
+
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
     
-    // Add styles
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        border-radius: 0.5rem;
-        color: white;
-        font-weight: 600;
-        z-index: 1001;
-        max-width: 400px;
-        word-wrap: break-word;
-    `;
-    
-    switch (type) {
-        case 'success':
-            notification.style.backgroundColor = '#10b981';
-            break;
-        case 'error':
-            notification.style.backgroundColor = '#ef4444';
-            break;
-        case 'info':
-            notification.style.backgroundColor = '#3b82f6';
-            break;
-    }
-    
     document.body.appendChild(notification);
     
-    // Remove after 5 seconds
     setTimeout(() => {
         if (notification.parentNode) {
             notification.parentNode.removeChild(notification);
@@ -591,33 +668,64 @@ function showNotification(message, type) {
 
 function showConfirmation(message, onConfirm) {
     document.getElementById('confirm-message').textContent = message;
-    document.getElementById('confirm-yes').onclick = () => {
+    
+    const confirmBtn = document.getElementById('confirm-yes');
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    
+    newConfirmBtn.addEventListener('click', () => {
         onConfirm();
         closeModal('confirm-modal');
-    };
+    });
+    
     openModal('confirm-modal');
 }
 
-// Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Admin page loaded, checking authentication...');
     checkAuthentication();
+    restoreElevation();
     
-    // Logout functionality
+    document.querySelectorAll('input[name="categories"]').forEach(checkbox => {
+    checkbox.addEventListener('change', () => {
+        const checked = [...document.querySelectorAll('input[name="categories"]:checked')];
+        if (checked.length > 2) {
+        // Uncheck the last checked box to keep only 2 selected
+        checkbox.checked = false;
+        alert('You can only select up to 2 categories.');
+        }
+    });
+    });
+
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', logout);
     }
 
-    // Elevation button
-    const elevateBtn = document.getElementById('elevate-btn');
-    if (elevateBtn) {
-        elevateBtn.addEventListener('click', () => {
-            openModal('elevation-modal');
+    const dashboardBtn = document.querySelector('button.btn-secondary[href="/dashboard.html"]') ||
+                                                    document.querySelector('button.btn-secondary:nth-of-type(1)');
+    const selectDriversBtn = document.querySelector('button.btn-secondary[href="/select-drivers.html"]') ||
+                                                    document.querySelector('button.btn-secondary:nth-of-type(2)');
+    const loginRedirectBtn = document.querySelector('#unauthorized button.btn-primary');
+
+    if (dashboardBtn) {
+        dashboardBtn.addEventListener('click', () => {
+            window.location.href = '/dashboard.html';
         });
     }
 
-    // Create buttons
+    if (selectDriversBtn) {
+        selectDriversBtn.addEventListener('click', () => {
+            window.location.href = '/select-drivers.html';
+        });
+    }
+
+    if (loginRedirectBtn) {
+        loginRedirectBtn.addEventListener('click', () => {
+            window.location.href = '/login.html';
+        });
+    }
+
     const createUserBtn = document.getElementById('create-user-btn');
     if (createUserBtn) {
         createUserBtn.addEventListener('click', () => {
@@ -634,25 +742,51 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Modal close buttons
-    document.querySelectorAll('.close, [data-modal]').forEach(element => {
-        element.addEventListener('click', (e) => {
+    const elevateBtn = document.getElementById('elevate-btn');
+    if (elevateBtn) {
+        elevateBtn.addEventListener('click', () => {
+            openModal('elevation-modal');
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('close') || e.target.hasAttribute('data-modal')) {
             const modalId = e.target.getAttribute('data-modal') || 
                            e.target.closest('.modal').id;
             if (modalId) {
                 closeModal(modalId);
             }
-        });
-    });
-
-    // Close modals when clicking outside
-    window.addEventListener('click', (e) => {
+        }
+        
         if (e.target.classList.contains('modal')) {
             closeModal(e.target.id);
         }
+            
+        if (e.target.classList.contains('edit-user-btn')) {
+            const userId = e.target.getAttribute('data-user-id');
+            if (userId) {
+                openUserModalForEdit(userId);
+            }
+        }
+
+        if (e.target.classList.contains('delete-driver-btn')) {
+            const driverId = e.target.getAttribute('data-driver-id');
+            const driverName = e.target.getAttribute('data-driver-name');
+            if (driverId) {
+                deleteDriver(driverId, driverName);
+            }
+        }
     });
 
-    // Form submissions
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const openModal = document.querySelector('.modal[style*="block"]');
+            if (openModal) {
+                closeModal(openModal.id);
+            }
+        }
+    });
+
     const elevationForm = document.getElementById('elevation-form');
     if (elevationForm) {
         elevationForm.addEventListener('submit', async (e) => {
@@ -711,7 +845,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const formData = new FormData(e.target);
             
-            // Get selected categories
             const categories = [];
             document.querySelectorAll('input[name="categories"]:checked').forEach(checkbox => {
                 categories.push(checkbox.value);
@@ -728,7 +861,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 categories: categories
             };
 
-            // Optional fields
             const imageURL = formData.get('imageURL');
             const description = formData.get('description');
             
@@ -744,20 +876,16 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 success = await createDriver(driverData);
             }
-
             if (success) {
                 closeModal('driver-modal');
             }
         });
     }
 
-    editBtn.addEventListener('click', () => editUser(user._id));
-
     // Form validation
     const userPinInput = document.getElementById('user-pin');
     if (userPinInput) {
         userPinInput.addEventListener('input', (e) => {
-            // Only allow numbers and limit to 4 characters
             e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
         });
     }
@@ -765,7 +893,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const driverValueInput = document.getElementById('driver-value');
     if (driverValueInput) {
         driverValueInput.addEventListener('input', (e) => {
-            // Ensure non-negative values
             if (parseFloat(e.target.value) < 0) {
                 e.target.value = 0;
             }
@@ -775,7 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userBudgetInput = document.getElementById('user-budget');
     if (userBudgetInput) {
         userBudgetInput.addEventListener('input', (e) => {
-            // Ensure non-negative values
+            
             if (parseFloat(e.target.value) < 0) {
                 e.target.value = 0;
             }

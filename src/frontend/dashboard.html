@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <title>Fantasy App - Dashboard</title>
 </head>
@@ -16,63 +19,131 @@
                     <p>Budget: £<span id="budget-display">Loading...</span></p>
                 </div>
                 <div class="header-actions">
-                    <button id="admin-panel-btn" class="btn btn-secondary" onclick="window.location.href='/admin.html'" style="display: none;">
+                    <button id="admin-panel-btn" class="btn btn-secondary" style="display: none;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
                         Admin Panel
                     </button>
                     <button id="logout-btn" class="btn btn-danger">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
                         Logout
                     </button>
                 </div>
             </div>
         </header>
 
-        <div class="container dashboard-container">
-            <div class="dashboard-welcome">
-                <h2>Dashboard</h2>
-                <p>Manage your team and track your performance</p>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Available Budget</h3>
-                    <p class="stat-value">£<span id="budget-stat">0</span></p>
-                </div>
-                <div class="stat-card">
-                    <h3>Team Status</h3>
-                    <p class="stat-value" id="team-status">Not Set</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Drivers Selected</h3>
-                    <p class="stat-value" id="drivers-count">0</p>
+    <div class="container dashboard-container">
+        <!-- Welcome Section -->
+        <div class="dashboard-welcome">
+            <div class="flex items-center justify-center mb-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-primary-color/10 rounded-full">
+                    <svg class="w-8 h-8 text-primary-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
                 </div>
             </div>
+            <h2>Loading...</h2>
+            <p>Manage your fantasy team and track your performance</p>
+        </div>
 
-            <div class="grid grid-cols-1">
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Quick Actions</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="flex gap-md">
-                            <button class="btn btn-primary" onclick="window.location.href='/select-drivers.html'">
-                                Build Your Team
-                            </button>
-                            <button class="btn btn-secondary" onclick="viewTeamHistory()">
-                                View History
-                            </button>
-                        </div>
-                    </div>
+    <!-- Statistics Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+                <h3>Available Budget</h3>
+                <div class="inline-flex items-center justify-center w-10 h-10 bg-success-color/10 rounded-lg">
+                    <svg class="w-5 h-5 text-success-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                    </svg>
+                </div>
+            </div>
+            <p class="stat-value">£<span id="budget-stat">0</span></p>
+        </div>
+
+        <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+                <h3>Next Race</h3>
+                <div class="inline-flex items-center justify-center w-10 h-10 bg-success-color/10 rounded-lg">
+                    <svg class="w-5 h-5 text-success-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                    </svg>
+                </div>
+            </div>
+            <p class="stat-value">Coming Soon</p>
+        </div>
+
+        <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+                <h3>Performance</h3>
+                <div class="inline-flex items-center justify-center w-10 h-10 bg-warning-color/10 rounded-lg">
+                    <svg class="w-5 h-5 text-warning-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+            </div>
+            <p class="stat-value">Coming Soon</p>
+        </div>
+    </div>
+
+    <!-- Action Cards Grid -->
+    <div class="grid grid-cols-2-md gap-6">
+        <!-- Quick Actions Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Quick Actions</h3>
+                <div class="inline-flex items-center justify-center w-8 h-8 bg-primary-color/10 rounded-lg">
+                    <svg class="w-4 h-4 text-primary-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="flex flex-col gap-3">
+                    <button class="btn btn-primary btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-round-pen-icon lucide-user-round-pen">
+                            <path d="M2 21a8 8 0 0 1 10.821-7.487"/><path d="M21.378 16.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/><circle cx="10" cy="8" r="5"/>
+                        </svg>
+                        Build Your Team
+                    </button>
+                    <button class="btn btn-secondary btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 21h8M12 17v4M17 8a5 5 0 01-10 0V4h10v4zM7 8H5a2 2 0 01-2-2V4m14 4h2a2 2 0 002-2V4"/>
+                        </svg>
+                        View Leaderboard
+                    </button>
+                    <button class="btn btn-secondary btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.553-1.894L9 2l6 3 6-3v14l-6 3-6-3z" />
+                        </svg>
+                        View Tracks
+                    </button>                    
+                    <button class="btn btn-secondary btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-5-4M9 20H4v-2a4 4 0 015-4m4-4a4 4 0 110-8 4 4 0 010 8z"/>
+                        </svg>
+                        View Drivers
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- Unauthorized message that shows when not logged in -->
     <div id="unauthorized" class="error-container" style="display: none;">
         <div class="error-box">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-error-color/10 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-error-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+            </div>
             <h2>Access Denied</h2>
             <p>You must be logged in to access this page.</p>
-            <button type="button" class="btn btn-primary" onclick="window.location.href='/login.html'">
+            <button type="button" class="btn btn-primary btn-lg" onclick="window.location.href='/login.html'">
                 Go to Login
             </button>
         </div>

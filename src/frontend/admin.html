@@ -3,30 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <title>Fantasy App - Admin Panel</title>
 </head>
 <body>
     <!-- Admin panel content that shows when authenticated and admin -->
     <div id="admin-panel" style="display: none;">
-        <div id="top-footer">
-            <div class="top-footer-text-content">
-                <h1>Admin Panel</h1>
-                <p>Budget: £<span id="budget-display">Loading...</span></p>
+        <header class="header">
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>Admin Panel</h1>
+                    <p>Budget: £<span id="budget-display">Loading...</span></p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="window.location.href='/dashboard.html'">
+                        Dashboard
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.location.href='/select-drivers.html'">
+                        Select Drivers
+                    </button>
+                    <button id="logout-btn" class="btn btn-danger">
+                        Logout
+                    </button>
+                </div>
             </div>
-            <div class="top-footer-content">
-                <button onclick="window.location.href='/dashboard.html'">Dashboard</button>
-                <button onclick="window.location.href='/select-drivers.html'">Select Drivers</button>
-                <button id="logout-btn">Logout</button>
-            </div>
-        </div>
+        </header>
 
-        <div class="admin-content">
+        <div class="container admin-content">
             <!-- Elevation Section -->
             <div class="elevation-section">
                 <div class="elevation-status">
-                    <span id="elevation-status">Not Elevated</span>
-                    <button id="elevate-btn" class="btn-primary">Request Elevation</button>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-tertiary font-medium">Security Status:</span>
+                        <span id="elevation-status" class="text-sm font-semibold">Not Elevated</span>
+                    </div>
+                    <button id="elevate-btn" class="btn btn-primary">
+                        Request Elevation
+                    </button>
                 </div>
             </div>
 
@@ -36,7 +52,10 @@
                 <div class="admin-section">
                     <div class="section-header">
                         <h2>User Management</h2>
-                        <button id="create-user-btn" class="btn-primary">Create User</button>
+                        <button id="create-user-btn" class="btn btn-primary">
+                            <span>+</span>
+                            Create User
+                        </button>
                     </div>
                     <div class="table-container">
                         <table id="users-table">
@@ -50,6 +69,14 @@
                             </thead>
                             <tbody id="users-table-body">
                                 <!-- Users will be loaded here -->
+                                <tr>
+                                    <td colspan="4" class="text-center text-tertiary">
+                                        <div class="flex items-center justify-center gap-2 py-8">
+                                            <div class="spinner" style="width: 20px; height: 20px;"></div>
+                                            <span>Loading users...</span>
+                                        </div>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -59,7 +86,10 @@
                 <div class="admin-section">
                     <div class="section-header">
                         <h2>Driver Management</h2>
-                        <button id="create-driver-btn" class="btn-primary">Create Driver</button>
+                        <button id="create-driver-btn" class="btn btn-primary">
+                            <span>+</span>
+                            Create Driver
+                        </button>
                     </div>
                     <div class="table-container">
                         <table id="drivers-table">
@@ -73,6 +103,14 @@
                             </thead>
                             <tbody id="drivers-table-body">
                                 <!-- Drivers will be loaded here -->
+                                <tr>
+                                    <td colspan="4" class="text-center text-tertiary">
+                                        <div class="flex items-center justify-center gap-2 py-8">
+                                            <div class="spinner" style="width: 20px; height: 20px;"></div>
+                                            <span>Loading drivers...</span>
+                                        </div>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -82,15 +120,27 @@
     </div>
 
     <!-- Unauthorized message -->
-    <div id="unauthorized" style="display: none;">
-        <h2>Access Denied</h2>
-        <p>You must be logged in as an admin to access this page.</p>
-        <button type="button" onclick="window.location.href='/login.html'">Go to Login</button>
+    <div id="unauthorized" class="error-container" style="display: none;">
+        <div class="error-box">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-error-color/10 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-error-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 18.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+            </div>
+            <h2>Access Denied</h2>
+            <p>You must be logged in as an admin to access this page.</p>
+            <button type="button" class="btn btn-primary btn-lg" onclick="window.location.href='/login.html'">
+                Go to Login
+            </button>
+        </div>
     </div>
 
     <!-- Loading indicator -->
-    <div id="loading" style="display: block; text-align: center; margin-top: 2rem;">
-        <p>Loading...</p>
+    <div id="loading" class="loading" style="display: block;">
+        <div class="spinner"></div>
+        <p>Loading admin panel...</p>
     </div>
 
     <!-- Elevation Modal -->
@@ -98,16 +148,28 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Request Elevation</h3>
-                <span class="close" data-modal="elevation-modal">&times;</span>
+                <button class="close" data-modal="elevation-modal" type="button">&times;</button>
             </div>
             <form id="elevation-form">
                 <div class="form-group">
-                    <label for="elevation-key">Elevation Key:</label>
-                    <input type="password" id="elevation-key" name="elevationKey" required>
+                    <label for="elevation-key">Elevation Key</label>
+                    <input 
+                        type="password" 
+                        id="elevation-key" 
+                        name="elevationKey" 
+                        placeholder="Enter your elevation key" 
+                        required
+                        autocomplete="off"
+                    >
+                    <small>Enter the administrative elevation key to access advanced features.</small>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary">Elevate</button>
-                    <button type="button" class="btn-secondary" data-modal="elevation-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        Grant Elevation
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-modal="elevation-modal">
+                        Cancel
+                    </button>
                 </div>
             </form>
         </div>
@@ -118,32 +180,60 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="user-modal-title">Create User</h3>
-                <span class="close" data-modal="user-modal">&times;</span>
+                <button class="close" data-modal="user-modal" type="button">&times;</button>
             </div>
             <form id="user-form">
                 <div class="form-group">
-                    <label for="user-username">Username:</label>
-                    <input type="text" id="user-username" name="username" required>
+                    <label for="user-username">Username</label>
+                    <input 
+                        type="text" 
+                        id="user-username" 
+                        name="username" 
+                        placeholder="Enter username" 
+                        required
+                        autocomplete="username"
+                    >
                 </div>
                 <div class="form-group">
-                    <label for="user-pin">PIN:</label>
-                    <input type="password" id="user-pin" name="pin" required maxlength="4" pattern="[0-9]{4}">
-                    <small>Must be exactly 4 digits</small>
+                    <label for="user-pin">PIN</label>
+                    <input 
+                        type="password" 
+                        id="user-pin" 
+                        name="pin" 
+                        placeholder="Enter 4-digit PIN" 
+                        maxlength="4" 
+                        pattern="[0-9]{4}"
+                        autocomplete="new-password"
+                    />
+                    <small>Must be exactly 4 digits (0-9)</small>
                 </div>
                 <div class="form-group">
-                    <label for="user-role">Role:</label>
+                    <label for="user-role">Role</label>
                     <select id="user-role" name="role" required>
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="user-budget">Budget:</label>
-                    <input type="number" id="user-budget" name="budget" min="0" step="0.01" value="0">
+                    <label for="user-budget">Budget (£)</label>
+                    <input 
+                        type="number" 
+                        id="user-budget" 
+                        name="budget" 
+                        min="0" 
+                        step="0.01" 
+                        value="0"
+                        placeholder="0.00"
+                    >
+                    <small>Starting budget amount for the user</small>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary" id="user-submit-btn">Create User</button>
-                    <button type="button" class="btn-secondary" data-modal="user-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="user-submit-btn">
+                        Create User
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-modal="user-modal">
+                        Cancel
+                    </button>
                 </div>
             </form>
         </div>
@@ -154,43 +244,78 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="driver-modal-title">Create Driver</h3>
-                <span class="close" data-modal="driver-modal">&times;</span>
+                <button class="close" data-modal="driver-modal" type="button">&times;</button>
             </div>
             <form id="driver-form">
                 <div class="form-group">
-                    <label for="driver-name">Name:</label>
-                    <input type="text" id="driver-name" name="name" required>
+                    <label for="driver-name">Driver Name</label>
+                    <input 
+                        type="text" 
+                        id="driver-name" 
+                        name="name" 
+                        placeholder="Enter driver name" 
+                        required
+                    >
                 </div>
                 <div class="form-group">
-                    <label for="driver-value">Value:</label>
-                    <input type="number" id="driver-value" name="value" min="0" step="0.01" value="0" required>
+                    <label for="driver-value">Value (£)</label>
+                    <input 
+                        type="number" 
+                        id="driver-value" 
+                        name="value" 
+                        min="0" 
+                        step="0.01" 
+                        value="0" 
+                        placeholder="0.00"
+                        required
+                    >
+                    <small>Driver's market value in pounds</small>
                 </div>
                 <div class="form-group">
-                    <label>Categories:</label>
+                    <label>Categories</label>
                     <div class="checkbox-group">
                         <label class="checkbox-label">
-                            <input type="checkbox" name="categories" value="M"> M
+                            <input type="checkbox" name="categories" value="M">
+                            <span>Category M</span>
                         </label>
                         <label class="checkbox-label">
-                            <input type="checkbox" name="categories" value="JS"> JS
+                            <input type="checkbox" name="categories" value="JS">
+                            <span>Category JS</span>
                         </label>
                         <label class="checkbox-label">
-                            <input type="checkbox" name="categories" value="I"> I
+                            <input type="checkbox" name="categories" value="I">
+                            <span>Category I</span>
                         </label>
                     </div>
-                    <small>Select 1 or 2 categories</small>
+                    <small>Select 1 or 2 categories for this driver</small>
                 </div>
                 <div class="form-group">
-                    <label for="driver-image">Image URL (optional):</label>
-                    <input type="url" id="driver-image" name="imageURL">
+                    <label for="driver-image">Image URL (optional)</label>
+                    <input 
+                        type="url" 
+                        id="driver-image" 
+                        name="imageURL"
+                        placeholder="https://example.com/image.jpg"
+                    >
+                    <small>URL to the driver's profile image</small>
                 </div>
                 <div class="form-group">
-                    <label for="driver-description">Description (optional):</label>
-                    <textarea id="driver-description" name="description" rows="3"></textarea>
+                    <label for="driver-description">Description (optional)</label>
+                    <textarea 
+                        id="driver-description" 
+                        name="description" 
+                        rows="3"
+                        placeholder="Enter driver description..."
+                    ></textarea>
+                    <small>Brief description or notes about the driver</small>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary" id="driver-submit-btn">Create Driver</button>
-                    <button type="button" class="btn-secondary" data-modal="driver-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="driver-submit-btn">
+                        Create Driver
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-modal="driver-modal">
+                        Cancel
+                    </button>
                 </div>
             </form>
         </div>
@@ -201,14 +326,26 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Confirm Action</h3>
-                <span class="close" data-modal="confirm-modal">&times;</span>
+                <button class="close" data-modal="confirm-modal" type="button">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="confirm-message">Are you sure?</p>
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-warning-color/10 rounded-full mb-4">
+                        <svg class="w-8 h-8 text-warning-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 18.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p id="confirm-message" class="text-center text-lg font-medium">Are you sure?</p>
+                <p class="text-center text-sm text-tertiary mt-2">This action cannot be undone.</p>
             </div>
             <div class="form-actions">
-                <button type="button" class="btn-danger" id="confirm-yes">Yes</button>
-                <button type="button" class="btn-secondary" data-modal="confirm-modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-yes">
+                    Yes, Continue
+                </button>
+                <button type="button" class="btn btn-secondary" data-modal="confirm-modal">
+                    Cancel
+                </button>
             </div>
         </div>
     </div>

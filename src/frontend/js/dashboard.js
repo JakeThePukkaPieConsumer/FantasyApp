@@ -59,11 +59,9 @@ async function loadDashboardData() {
     if (!currentUser) return;
 
     try {
-        // Update budget displays
         updateBudgetDisplays(currentUser.budget);
         
-        // You can add more dashboard data loading here
-        // For example: load user's current team, statistics, etc.
+        // Load dashboard data here
         
     } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -107,7 +105,6 @@ async function displayUserInfo(user) {
         }
     }
 
-    // Update welcome message (if you want to personalize it)
     const welcomeMessage = document.querySelector('.dashboard-welcome h2');
     if (welcomeMessage) {
         welcomeMessage.textContent = `Welcome back, ${user.username}!`;
@@ -131,14 +128,12 @@ function hideLoading() {
 function logout() {
     console.log('Logging out user');
     
-    // Show loading state briefly
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.textContent = 'Logging out...';
         logoutBtn.disabled = true;
     }
     
-    // Clear token and redirect
     localStorage.removeItem('token');
     
     setTimeout(() => {
@@ -146,13 +141,6 @@ function logout() {
     }, 500);
 }
 
-// Placeholder function for team history
-function viewTeamHistory() {
-    alert('Team history feature coming soon!');
-    // TODO: Implement team history modal or page
-}
-
-// Add some interactivity to stat cards
 function animateStatCards() {
     const statCards = document.querySelectorAll('.stat-card');
     statCards.forEach((card, index) => {
@@ -169,46 +157,21 @@ function animateStatCards() {
     });
 }
 
-// Handle keyboard shortcuts
-function handleKeyboardShortcuts(event) {
-    // Alt + D for Dashboard (already on dashboard)
-    if (event.altKey && event.key === 'd') {
-        event.preventDefault();
-        console.log('Already on dashboard');
-    }
-    
-    // Alt + S for Select Drivers
-    if (event.altKey && event.key === 's') {
-        event.preventDefault();
-        window.location.href = '/select-drivers.html';
-    }
-    
-    // Alt + A for Admin (if admin)
-    if (event.altKey && event.key === 'a' && currentUser?.role === 'admin') {
-        event.preventDefault();
-        window.location.href = '/admin.html';
-    }
-    
-    // Alt + L for Logout
-    if (event.altKey && event.key === 'l') {
-        event.preventDefault();
-        logout();
-    }
-}
-
-// Check authentication when page loads
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Dashboard page loaded, checking authentication...');
     checkAuthentication();
     
-    // Add logout functionality
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', logout);
     }
-    
-    // Add keyboard shortcuts
-    document.addEventListener('keydown', handleKeyboardShortcuts);
+
+    const adminBtn = document.getElementById('admin-panel-btn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', function() {
+            window.location.href = '/admin.html';
+        });
+    }
     
     // Animate stat cards after a short delay
     setTimeout(animateStatCards, 1000);
