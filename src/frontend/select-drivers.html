@@ -7,33 +7,51 @@
     <title>Fantasy App - Select Drivers</title>
 </head>
 <body>
-    <!-- Driver Selection content that shows when authenticated -->
-    <div id="driver-selection" style="display: none;">
+      <div id="driver-selection" style="display: none;">
         <header class="header">
-            <div class="header-content">
-                <div class="header-title">
-                    <h1>Select Drivers</h1>
-                    <p>Budget: £<span id="budget-display">Loading...</span> | Used: £<span id="budget-used">0</span></p>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" onclick="window.location.href='/dashboard.html'">
-                        Dashboard
-                    </button>
-                    <button id="save-team-btn" class="btn btn-success" disabled>
-                        Save Team
-                    </button>
-                    <button id="logout-btn" class="btn btn-danger">
-                        Logout
-                    </button>
+            <div class="header-main">
+                <div class="header-content">
+                    <div class="header-title">
+                        <h1>Select Drivers</h1>
+                        <p class="header-subtitle">
+                            Budget: £<span id="budget-display">Loading...</span> 
+                            <span class="divider">|</span> 
+                            Used: £<span id="budget-used">0</span>
+                        </p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="window.location.href='/dashboard.html'">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                            </svg>
+                            Dashboard
+                        </button>
+                        <button id="save-team-btn" class="btn btn-success" disabled>
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Save Team
+                        </button>
+                        <button id="logout-btn" class="btn btn-danger">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            Logout
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <div class="container" style="padding: var(--spacing-xl) var(--spacing-md);">
-            <!-- Team Summary -->
-            <div class="card" style="margin-bottom: var(--spacing-xl);">
+        <div class="container" style="padding: var(--spacing-8) var(--spacing-4);">
+            <div class="card" style="margin-bottom: var(--spacing-8);">
                 <div class="card-header">
-                    <h3>Your Team</h3>
+                    <h3>Your Team Summary</h3>
+                    <div class="flex items-center gap-2">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-5-4M9 20H4v-2a4 4 0 015-4m4-4a4 4 0 110-8 4 4 0 010 8z"></path>
+                        </svg>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="stats-grid">
@@ -58,32 +76,55 @@
             </div>
 
             <!-- Category Filters -->
-            <div class="card" style="margin-bottom: var(--spacing-xl);">
+            <div class="card" style="margin-bottom: var(--spacing-8);">
                 <div class="card-header">
-                    <h3>Filter by Category</h3>
+                    <h3>Filter & Search</h3>
+                    <div class="flex items-center gap-2">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"></path>
+                        </svg>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="flex gap-md">
-                        <button class="btn btn-secondary filter-btn active" data-category="all">
-                            All Drivers
-                        </button>
-                        <button class="btn btn-secondary filter-btn" data-category="M">
-                            Category M
-                        </button>
-                        <button class="btn btn-secondary filter-btn" data-category="JS">
-                            Category JS
-                        </button>
-                        <button class="btn btn-secondary filter-btn" data-category="I">
-                            Category I
-                        </button>
+                    <div class="flex flex-wrap gap-4 items-center justify-between">
+                        <div class="flex gap-3">
+                            <button class="btn btn-secondary filter-btn active" data-category="all">
+                                All Drivers
+                            </button>
+                            <button class="btn btn-secondary filter-btn" data-category="M">
+                                Category M
+                            </button>
+                            <button class="btn btn-secondary filter-btn" data-category="JS">
+                                Category JS
+                            </button>
+                            <button class="btn btn-secondary filter-btn" data-category="I">
+                                Category I
+                            </button>
+                        </div>
+                        <div class="flex gap-3 items-center">
+                            <input type="text" id="search-drivers" placeholder="Search drivers..." 
+                                   style="margin: 0; width: 250px; min-width: 200px;">
+                            <button id="sort-by-value" class="btn btn-secondary btn-sm">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5v6l3-3 3 3V5"></path>
+                                </svg>
+                                Sort by Value
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Selected Drivers -->
-            <div id="selected-drivers-section" class="card" style="margin-bottom: var(--spacing-xl); display: none;">
+            <div id="selected-drivers-section" class="card" style="margin-bottom: var(--spacing-8); display: none;">
                 <div class="card-header">
                     <h3>Selected Drivers</h3>
+                    <div class="flex items-center gap-2">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div id="selected-drivers-grid" class="grid grid-cols-3">
@@ -96,19 +137,26 @@
             <div class="card">
                 <div class="card-header">
                     <h3>Available Drivers</h3>
-                    <div class="flex gap-sm items-center">
-                        <input type="text" id="search-drivers" placeholder="Search drivers..." style="margin: 0; width: 250px;">
-                        <button id="sort-by-value" class="btn btn-secondary btn-sm">
-                            Sort by Value
-                        </button>
+                    <div class="flex items-center gap-2">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
                     </div>
                 </div>
                 <div class="card-body">
                     <div id="drivers-grid" class="grid grid-cols-4">
                         <!-- Drivers will be populated here -->
                     </div>
-                    <div id="no-drivers" style="display: none; text-align: center; padding: var(--spacing-xl);">
-                        <p>No drivers found matching your criteria.</p>
+                    <div id="no-drivers" style="display: none; text-align: center; padding: var(--spacing-12);">
+                        <div class="flex flex-col items-center gap-4">
+                            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="text-tertiary">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.034 0-3.9.785-5.291 2.06M6.343 6.343A8 8 0 1017.657 17.657 8 8 0 006.343 6.343z"></path>
+                            </svg>
+                            <div>
+                                <h4 style="margin-bottom: var(--spacing-2);">No drivers found</h4>
+                                <p>Try adjusting your search or filter criteria.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -118,9 +166,16 @@
     <!-- Unauthorized message -->
     <div id="unauthorized" class="error-container" style="display: none;">
         <div class="error-box">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-error-color/10 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-error-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+            </div>
             <h2>Access Denied</h2>
             <p>You must be logged in to access this page.</p>
-            <button type="button" class="btn btn-primary" onclick="window.location.href='/login.html'">
+            <button type="button" class="btn btn-primary btn-lg" onclick="window.location.href='/login.html'">
                 Go to Login
             </button>
         </div>
@@ -156,130 +211,6 @@
             </div>
         </div>
     </template>
-
-    <style>
-        /* Driver-specific styles */
-        .driver-card {
-            background: var(--background-primary);
-            border: 2px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-md);
-            transition: all var(--transition-normal);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .driver-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--primary-color);
-        }
-
-        .driver-card.selected {
-            border-color: var(--success-color);
-            background: linear-gradient(135deg, var(--background-primary) 0%, #f0fdf4 100%);
-        }
-
-        .driver-card.disabled {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .driver-image-container {
-            position: relative;
-            margin-bottom: var(--spacing-md);
-        }
-
-        .driver-image {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-            border-radius: var(--radius-md);
-            background: var(--background-tertiary);
-        }
-
-        .driver-categories {
-            position: absolute;
-            top: var(--spacing-xs);
-            right: var(--spacing-xs);
-            display: flex;
-            gap: var(--spacing-xs);
-        }
-
-        .category-badge {
-            background: var(--primary-color);
-            color: var(--text-inverse);
-            padding: var(--spacing-xs) var(--spacing-sm);
-            border-radius: var(--radius-sm);
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .driver-info {
-            margin-bottom: var(--spacing-md);
-        }
-
-        .driver-name {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: var(--spacing-xs);
-            color: var(--text-primary);
-        }
-
-        .driver-value {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: var(--success-color);
-            margin-bottom: var(--spacing-xs);
-        }
-
-        .driver-description {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin: 0;
-        }
-
-        .driver-actions {
-            display: flex;
-            gap: var(--spacing-sm);
-        }
-
-        .filter-btn.active {
-            background-color: var(--primary-color);
-            color: var(--text-inverse);
-            border-color: var(--primary-color);
-        }
-
-        @media (max-width: 1024px) {
-            .grid-cols-4 {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .grid-cols-4,
-            .grid-cols-3 {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .grid-cols-4,
-            .grid-cols-3,
-            .grid-cols-2 {
-                grid-template-columns: 1fr;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-
-    <script src="js/select-drivers.js"></script>
+    <script type="module" src="js/select-drivers.js"></script>
 </body>
 </html>
