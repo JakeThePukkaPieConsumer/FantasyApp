@@ -301,12 +301,8 @@ class DriverSelection {
         const card = document.createElement('div');
         card.className = 'driver-card selected';
         card.innerHTML = `
-            <div class="driver-image-container">
-                <img class="driver-image" src="${this.escapeHTML(driver.imageURL || '')}" alt="${this.escapeHTML(driver.name)} photo" 
-                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik01MCA1OEM1Ni42Mjc0IDU4IDYyIDUyLjYyNzQgNjIgNDZDNjIgMzkuMzcyNiA1Ni42Mjc0IDM0IDUwIDM0QzQzLjM3MjYgMzQgMzggMzkuMzcyNiAzOCA0NkMzOCA1Mi42Mjc0IDQzLjM3MjYgNTggNTAgNThaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0yNiA3NEMyNiA2NS4xNjM0IDMzLjE2MzQgNTggNDIgNThINThDNjYuODM2NiA1OCA3NCA2NS4xNjM0IDc0IDc0VjgySDI2Vjc0WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K'">
-                <div class="driver-categories">
-                    ${driver.categories.map(cat => `<span class="category-badge">${this.escapeHTML(cat)}</span>`).join('')}
-                </div>
+            <div class="driver-categories">
+                ${driver.categories.map(cat => `<span class="category-badge">${this.escapeHTML(cat)}</span>`).join('')}
             </div>
             <div class="driver-info">
                 <h4 class="driver-name">${this.escapeHTML(driver.name)}</h4>
