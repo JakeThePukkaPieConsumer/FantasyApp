@@ -9,6 +9,7 @@ class ElevationModule {
     }
 
     init() {
+        this.restoreElevationState();
         this.setupEventListeners();
         this.updateElevationStatus();
         
@@ -48,17 +49,16 @@ class ElevationModule {
 
         try {
             const result = await this.apiModule.users.requestElevation(elevationKey);
-            console.log('Elevation result:', result);
 
             if (!result.success) {
                 throw new Error(result.error);
             }
 
-            this.elevatedToken = result.elevatedToken;
-            console.log(result.data.token);
-            console.log(result.elevatedToken);
+            this.elevatedToken = result.data.token;
             this.elevationExpiry = Date.now() + this.elevationDuration;
             
+            this.saveElevationState();
+
             this.notificationModule.success('Elevation granted successfully');
             this.modalModule.close('elevation-modal');
             this.updateElevationStatus();
@@ -92,6 +92,9 @@ class ElevationModule {
     revokeElevation() {
         this.elevatedToken = null;
         this.elevationExpiry = null;
+
+        this.saveElevationState();
+
         this.updateElevationStatus();
         this.hideElevatedActions();
         this.notificationModule.info('Elevation revoked');
@@ -101,6 +104,16 @@ class ElevationModule {
         if (this.elevationExpiry && Date.now() >= this.elevationExpiry) {
             this.revokeElevation();
             this.notificationModule.warning('Administrative elevation has expired');
+        }
+    }
+
+    saveElevationState() {
+        if (this.elevatedToken && this.elevationExpiry) {
+            sessionStorage.setItem('elevatedToken', this.elevatedToken);
+            sessionStorage.setItem('elevationExpiry', this.elevationExpiry.toString());
+        } else {
+            sessionStorage.removeItem('elevatedToken');
+            sessionStorage.removeItem('elevationExpiry');
         }
     }
 
@@ -121,6 +134,27 @@ class ElevationModule {
             statusElement.className = 'text-sm font-semibold text-error-color';
             elevateBtn.textContent = 'Request Elevation';
             elevateBtn.className = 'btn btn-primary';
+        }
+    }
+
+    restoreElevationState() {
+        const savedToken = sessionStorage.getItem('elevatedToken');
+        const savedExpiry = sessionStorage.getItem('elevationExpiry');
+        
+        if (savedToken && savedExpiry) {
+            const expiryTime = parseInt(savedExpiry);
+            
+            if (Date.now() < expiryTime) {
+                this.elevatedToken = savedToken;
+                this.elevationExpiry = expiryTime;
+
+                this.showElevatedActions();
+                console.log('Restored elevation state from sessionStorage');
+            } else {
+                sessionStorage.removeItem('elevatedToken');
+                sessionStorage.removeItem('elevationExpiry');
+                console.log('Saved elevation was expired, cleaning up');
+            }
         }
     }
 
@@ -153,18 +187,6 @@ class ElevationModule {
         
         const minutes = Math.ceil(remaining / 60000);
         return `${minutes} minute${minutes !== 1 ? 's' : ''} remaining`;
-    }
-
-    extendElevation() {
-        if (this.isElevated()) {
-            this.elevationExpiry = Date.now() + this.elevationDuration;
-            this.updateElevationStatus();
-            this.notificationModule.success('Elevation extended');
-        }
-    }
-
-    setElevationDuration(minutes) {
-        this.elevationDuration = minutes * 60 * 1000;
     }
 }
 

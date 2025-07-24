@@ -96,26 +96,30 @@ class ApiModule {
 class UserApi extends ApiModule {
     constructor(authModule, elevationModule) {
         super(authModule);
-        this.elevationModule = elevationModule
+        this.elevationModule = elevationModule;
     }
+
     async getUsers() {
         return this.get('/api/auth/user/users');
     }
 
     async createUser(userData, elevatedToken) {
         return this.post('/api/admin/users/users', userData, {
+            includeAuth: false,
             headers: { 'Authorization': `Bearer ${elevatedToken}` }
         });
     }
 
     async updateUser(userId, userData, elevatedToken) {
         return this.put(`/api/admin/users/${userId}`, userData, {
+            includeAuth: false,
             headers: { 'Authorization': `Bearer ${elevatedToken}` }
         });
     }
 
     async deleteUser(userId, elevatedToken) {
         return this.delete(`/api/admin/users/${userId}`, {
+            includeAuth: false,
             headers: { 'Authorization': `Bearer ${elevatedToken}` }
         });
     }
@@ -127,8 +131,8 @@ class UserApi extends ApiModule {
 
 class DriverApi extends ApiModule {
     constructor(authModule, elevationModule) {
-        super(authModule)
-        this.elevationModule = elevationModule
+        super(authModule);
+        this.elevationModule = elevationModule;
     }
 
     async getDrivers() {
@@ -137,18 +141,21 @@ class DriverApi extends ApiModule {
 
     async createDriver(driverData, elevatedToken) {
         return this.post('/api/drivers/admin/drivers', driverData, {
+            includeAuth: false,
             headers: { 'Authorization': `Bearer ${elevatedToken}` }
         });
     }
 
     async updateDriver(driverId, driverData, elevatedToken) {
         return this.put(`/api/drivers/admin/drivers/${driverId}`, driverData, {
+            includeAuth: false,
             headers: { 'Authorization': `Bearer ${elevatedToken}` }
         });
     }
 
     async deleteDriver(driverId, elevatedToken) {
         return this.delete(`/api/drivers/admin/drivers/${driverId}`, {
+            includeAuth: false,
             headers: { 'Authorization': `Bearer ${elevatedToken}` }
         });
     }

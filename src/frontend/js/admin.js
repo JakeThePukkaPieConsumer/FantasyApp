@@ -36,7 +36,8 @@ class AdminPanel {
         console.log('Initializing admin panel...');
         
         try {
-            await            await this.initializeModules(); this.checkAuthentication();
+            await this.initializeModules(); 
+            await this.checkAuthentication();
 
             this.setupEventListeners();
             this.showAdminPanel();
