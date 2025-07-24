@@ -316,8 +316,6 @@ small {
     box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.15);
 }
 
-/* Button Variants */
-
 .btn-primary {
     background-color: var(--primary-color);
     color: var(--text-inverse);
@@ -755,11 +753,11 @@ small {
 }
 
 #pin::placeholder {
-  font-family: 'Inter', sans-serif; /* match your app font */
-  font-weight: 500; /* medium weight */
-  font-size: 1rem;  /* adjust size as needed */
-  color: #999999;   /* subtle gray color */
-  opacity: 1;       /* make sure color shows properly */
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 1rem;
+  color: #999999;
+  opacity: 1; 
 }
 
 .dashboard-container {
@@ -1195,6 +1193,12 @@ table tbody tr:last-child td {
     font-size: var(--font-size-lg);
 }
 
+.search-input {
+    margin: 0;
+    width: 250px;
+    min-width: 200px;
+}
+
 .driver-card {
     background: var(--background-primary);
     border: 2px solid var(--border-light);
@@ -1435,30 +1439,10 @@ table tbody tr:last-child td {
         text-align: center;
     }
     
-    .header-content {
+    .section-header {
         flex-direction: column;
-        gap: var(--spacing-3);
-        text-align: center;
-    }
-    
-    .header-actions {
-        flex-wrap: wrap;
-        justify-content: center;
-        width: 100%;
-    }
-
-    .header-stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .header-quick-actions {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .header-quick-actions .btn {
-        width: 100%;
-        max-width: 200px;
+        gap: var(--spacing-4);
+        align-items: stretch;
     }
     
     .elevation-status {
@@ -1549,10 +1533,6 @@ table tbody tr:last-child td {
 }
 
 @media (max-width: 480px) {
-    .header-stats {
-        grid-template-columns: 1fr;
-    }
-    
     .header-title h1 {
         font-size: var(--font-size-xl);
     }
@@ -1574,7 +1554,6 @@ table tbody tr:last-child td {
     }
 }
 
-/* Print Styles */
 @media print {
     .header,
     .btn,
@@ -1602,7 +1581,6 @@ table tbody tr:last-child td {
     }
 }
 
-/* Focus Styles for Accessibility */
 *:focus-visible {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
@@ -1614,7 +1592,6 @@ button:focus-visible,
     outline-offset: 4px;
 }
 
-/* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -1626,7 +1603,6 @@ button:focus-visible,
     }
 }
 
-/* High Contrast Mode */
 @media (prefers-contrast: high) {
     :root {
         --border-color: #000000;
@@ -1644,7 +1620,6 @@ button:focus-visible,
     }
 }
 
-/* Dark Mode Support (for future implementation) */
 @media (prefers-color-scheme: dark) {
     :root {
         --primary-color: #3b82f6;
@@ -1669,7 +1644,6 @@ button:focus-visible,
     }
 }
 
-/* Utility Classes */
 .sr-only {
     position: absolute;
     width: 1px;

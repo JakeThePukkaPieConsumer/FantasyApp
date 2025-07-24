@@ -18,14 +18,23 @@ class DriverSelection {
         console.log('Initializing driver selection...');
 
         try {
+            this.setupEventListeners();
             await this.checkAuthentication();
             await this.loadDrivers();
-            this.setupEventListeners();
             this.showDriverSelection();
         } catch (err) {
             console.error('Failed to initialize driver selection:', err);
             this.showUnauthorized();
         }
+    }
+
+    escapeHTML(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     async checkAuthentication() {
@@ -64,7 +73,14 @@ class DriverSelection {
             });
         }
 
-        const saveTeamBtn = document.getElementById('save-team-btn')
+        const dashboardBtn = document.getElementById('dashboard-btn');
+        if (dashboardBtn) {
+            dashboardBtn.addEventListener('click', () => {
+                window.location.href = '/dashboard.html';
+            });
+        }
+
+        const saveTeamBtn = document.getElementById('save-team-btn');
         if (saveTeamBtn) {
             saveTeamBtn.addEventListener('click', () => this.saveTeam());
         }
@@ -72,7 +88,7 @@ class DriverSelection {
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 this.setActiveFilter(e.target);
-                this.filteredDrivers(e.target.dataset.category);
++               this.filterDrivers(e.target.dataset.category);
             });
         });
 
@@ -106,9 +122,9 @@ class DriverSelection {
         this.currentFilter = category;
 
         if (category === 'all') {
-            this.filterDrivers = [...this.drivers];
+           this.filteredDrivers = [...this.drivers];
         } else {
-            this.filterDrivers = this.drivers.filter(driver => 
+            this.filteredDrivers = this.drivers.filter(driver => 
                 driver.categories.includes(category)
             );
         }
@@ -284,15 +300,15 @@ class DriverSelection {
         card.className = 'driver-card selected';
         card.innerHTML = `
             <div class="driver-image-container">
-                <img class="driver-image" src="${driver.imageURL || ''}" alt="${driver.name} photo" 
+                <img class="driver-image" src="${this.escapeHTML(driver.imageURL || '')}" alt="${escapeHtml(driver.name)} photo" 
                      onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik01MCA1OEM1Ni42Mjc0IDU4IDYyIDUyLjYyNzQgNjIgNDZDNjIgMzkuMzcyNiA1Ni42Mjc0IDM0IDUwIDM0QzQzLjM3MjYgMzQgMzggMzkuMzcyNiAzOCA0NkMzOCA1Mi42Mjc0IDQzLjM3MjYgNTggNTAgNThaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0yNiA3NEMyNiA2NS4xNjM0IDMzLjE2MzQgNTggNDIgNThINThDNjYuODM2NiA1OCA3NCA2NS4xNjM0IDc0IDc0VjgySDI2Vjc0WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K'">
                 <div class="driver-categories">
-                    ${driver.categories.map(cat => `<span class="category-badge">${cat}</span>`).join('')}
+                    ${driver.categories.map(cat => `<span class="category-badge">${escapeHtml(cat)}</span>`).join('')}
                 </div>
             </div>
             <div class="driver-info">
-                <h4 class="driver-name">${driver.name}</h4>
-                <p class="driver-value">£${authModule.formatCurrency(driver.value)}</p>
+                <h4 class="driver-name">${escapeHtml(driver.name)}</h4>
+                <p class="driver-value">£${escapeHtml(authModule.formatCurrency(driver.value))}</p>
             </div>
             <div class="driver-actions">
                 <button class="btn btn-danger btn-sm remove-driver-btn">
@@ -316,17 +332,11 @@ class DriverSelection {
         document.getElementById('selected-count').textContent = selectedCount;
         document.getElementById('budget-remaining').textContent = authModule.formatCurrency(budgetRemaining);
         document.getElementById('team-value').textContent = authModule.formatCurrency(teamValue);
-        document.getElementById('team-status').textContent = isComplete ? 'Complete' : 'Incomplete';
         document.getElementById('budget-used').textContent = authModule.formatCurrency(teamValue);
 
         const saveBtn = document.getElementById('save-team-btn');
         if (saveBtn) {
             saveBtn.disabled = !isComplete;
-        }
-
-        const teamStatusElement = document.getElementById('team-status');
-        if (teamStatusElement) {
-            teamStatusElement.style.color = isComplete ? 'var(--success-color)' : 'var(--warning-color)';
         }
     }
 
@@ -347,6 +357,7 @@ class DriverSelection {
         }
 
         try {
+            // TODO: Replace with API call when backend is ready
             notificationModule.showLoading('Saving your team...', { duration: 2000 });
             
             setTimeout(() => {
@@ -414,7 +425,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const driverSelection = new DriverSelection();
     await driverSelection.init();
     
-    window.driverSelection = driverSelection;
+    if (process.env.NODE_ENV === 'development') {
+        window.driverSelection = driverSelection;
+    }
 });
 
 document.addEventListener('visibilitychange', () => {
