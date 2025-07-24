@@ -7,7 +7,7 @@ const { AppError, catchAsync } = require('../middleware/errorHandler');
 const router = express.Router();
 
 router.get('/user/users', catchAsync(async (req, res) => {
-    const users = await User.find({}, 'username role budget').sort({ username: 1 });
+    const users = await User.find({}, { pin: 0 }).sort({ username: 1 });
     res.status(200).json(users);
 }));
 

@@ -146,11 +146,13 @@ class ModalModule {
 
         const usernameEl = document.getElementById('user-username');
         const pinEl = document.getElementById('user-pin');
+        const pointsEl = document.getElementById('user-points');
         const roleEl = document.getElementById('user-role');
         const budgetEl = document.getElementById('user-budget');
 
         if (usernameEl) usernameEl.value = user.username;
         if (pinEl) pinEl.value = '';  // Don't populate PIN for security
+        if (pointsEl) pointsEl.value = user.points;
         if (roleEl) roleEl.value = user.role;
         if (budgetEl) budgetEl.value = user.budget;
 

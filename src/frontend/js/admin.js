@@ -39,8 +39,9 @@ class AdminPanel {
             await this.initializeModules(); 
             await this.checkAuthentication();
 
-            this.setupEventListeners();
+            
             this.showAdminPanel();
+            this.setupEventListeners();
         } catch (error) {
             console.error('Failed to initialize admin panel:', error);
             this.showError();
@@ -77,6 +78,14 @@ class AdminPanel {
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
                 authModule.logout();
+            });
+        }
+
+        const dashboardBtn = document.getElementById('dashboard-btn');
+        if (dashboardBtn) {
+            dashboardBtn.addEventListener('click', () => {
+                window.location.href = '/dashboard.html';
+                console.log('test');
             });
         }
 

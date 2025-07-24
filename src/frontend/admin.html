@@ -19,10 +19,10 @@
                     <p>Budget: £<span id="budget-display">Loading...</span></p>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-secondary" onclick="window.location.href='/dashboard.html'">
+                    <button class="btn btn-secondary" id="dashboard-btn">
                         Dashboard
                     </button>
-                    <button class="btn btn-secondary" onclick="window.location.href='/select-drivers.html'">
+                    <button class="btn btn-secondary" id="slct-driv-btn">
                         Select Drivers
                     </button>
                     <button id="logout-btn" class="btn btn-danger">
@@ -60,16 +60,17 @@
                         <table id="users-table">
                             <thead>
                                 <tr>
-                                    <th>Username</th>
+                                    <td>Username</td>
                                     <th>Role</th>
                                     <th>Budget</th>
+                                    <th>Points</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="users-table-body">
                                 <!-- Users will be loaded here -->
                                 <tr>
-                                    <td colspan="4" class="text-center text-tertiary">
+                                    <td colspan="5" class="text-center text-tertiary">
                                         <div class="flex items-center justify-center gap-2 py-8">
                                             <div class="spinner" style="width: 20px; height: 20px;"></div>
                                             <span>Loading users...</span>
@@ -174,6 +175,7 @@
         </div>
     </div>
 
+    <!-- User modal -->
     <div id="user-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -204,6 +206,17 @@
                         autocomplete="new-password"
                     />
                     <small>Must be exactly 4 digits (0-9)</small>
+                </div>
+                <div class="form-group">
+                    <label for="user-points">Points</label>
+                    <input 
+                        type="number" 
+                        id="user-points" 
+                        name="points" 
+                        pattern="[0-9]+" 
+                        autocomplete="off" 
+                        title="Please enter a valid number"
+                    />
                 </div>
                 <div class="form-group">
                     <label for="user-role">Role</label>

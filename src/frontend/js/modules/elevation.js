@@ -5,7 +5,7 @@ class ElevationModule {
         this.notificationModule = notificationModule;
         this.elevatedToken = null;
         this.elevationExpiry = null;
-        this.elevationDuration = 30 * 60 * 1000; // 30 minutes in milliseconds
+        this.elevationDuration = (30 * 60 * 1000) / 2; // 15 minutes in milliseconds
     }
 
     init() {

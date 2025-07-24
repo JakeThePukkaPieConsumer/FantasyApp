@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
     pin: { type: String, required: true },
     role: { type: String, enum: ['admin', 'user'], default: 'user' },
     budget: { type: Number, default: 0, min: 0 },
+    points: { type: Number, default: 0, min: 0 }
 });
 
 module.exports = mongoose.model('User', userSchema);

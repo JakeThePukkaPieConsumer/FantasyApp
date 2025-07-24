@@ -67,7 +67,7 @@ class UserManager {
         if (this.users.length === 0) {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td colspan="4" class="text-center text-tertiary">
+                <td colspan="5" class="text-center text-tertiary">
                     <div class="flex items-center justify-center gap-2 py-8">
                         <span>No users found</span>
                     </div>
@@ -97,6 +97,10 @@ class UserManager {
         const budgetTd = document.createElement('td');
         budgetTd.textContent = `£${user.budget}`;
         row.appendChild(budgetTd);
+        
+        const pointTd = document.createElement('td');
+        pointTd.textContent = user.points ?? '0';
+        row.appendChild(pointTd);
 
         const actionsTd = document.createElement('td');
         const btnGroup = document.createElement('div');
@@ -126,7 +130,8 @@ class UserManager {
         const userData = {
             username: formData.get('username'),
             role: formData.get('role'),
-            budget: parseFloat(formData.get('budget')) || 0
+            budget: parseFloat(formData.get('budget')) || 0,
+            points: formData.get('points') || 0
         };
 
         const pin = formData.get('pin');
@@ -174,6 +179,10 @@ class UserManager {
 
         if (userData.budget < 0) {
             return { valid: false, error: 'Budget cannot be negative' };
+        }
+
+        if (userData.points !== undefined && userData.points < 0) {
+            return { valid: false, error: 'Points cannot be negative' };
         }
 
         return { valid: true };
