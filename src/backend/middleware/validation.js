@@ -1,6 +1,7 @@
 const { body, validationResult, param } = require('express-validator');
 const { AppError } = require('./errorHandler');
 const mongoose = require('mongoose');
+const { validateYear } = require('../models/modelPerYear');
 
 const handleValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
@@ -34,6 +35,16 @@ const loginValidation = [
         .withMessage('PIN must be exactly 4 numbers')
         .isNumeric()
         .withMessage('PIN must contain only numbers'),
+    body('year')
+        .optional()
+        .matches(/^\d{4}$/)
+        .withMessage('Year must be a 4-digit number')
+        .custom(value => {
+            if (value && !validateYear(value)) {
+                throw new Error(`Invalid year: ${value}. Must be between 2000 and ${new Date().getFullYear() + 5}`);
+            }
+            return true;
+        }),
     handleValidationErrors
 ];
 
@@ -161,7 +172,7 @@ const createRosterValidation = [
         .custom(value => mongoose.Types.ObjectId.isValid(value))
         .withMessage('Race ID must be a valid MongoDB ObjectId'),
     handleValidationErrors
-]
+];
 
 const updateRosterValidation = [
     body('user')
@@ -173,18 +184,19 @@ const updateRosterValidation = [
         .isArray({ min: 1 })
         .withMessage('Drivers must be a non-empty array'),
     body('budgetUsed')
+        .optional()
         .isFloat({ min: 0 })
         .withMessage('Budget used must be a number greater than or equal to 0'),
-    body('pointEarned')
+    body('pointsEarned')
+        .optional()
         .isNumeric()
         .withMessage('Points earned must be a number'),
     body('race')
-        .notEmpty()
-        .withMessage('Race ID is required')
+        .optional()
         .custom(value => mongoose.Types.ObjectId.isValid(value))
         .withMessage('Race ID must be a valid mongoDB ObjectId'),
     handleValidationErrors
-]
+];
 
 const mongoIdValidation = (paramName = 'id') => {
   return (req, res, next) => {
@@ -261,6 +273,8 @@ module.exports = {
     loginValidation,
     createDriverValidation,
     updateDriverValidation,
+    createRosterValidation,
+    updateRosterValidation,
     yearValidation,
     copyYearValidation
 };

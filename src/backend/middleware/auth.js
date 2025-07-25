@@ -1,14 +1,25 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/userSchema');
+const { getUserModelForYear, validateYear } = require('../models/modelPerYear');
 const { AppError, catchAsync } = require('./errorHandler');
 
-function genToken(userId, expiresIn = '14d', isElevated = false) {
+// Get current active year (you might want to make this configurable)
+const getCurrentActiveYear = () => {
+    return new Date().getFullYear().toString();
+};
+
+function genToken(userId, expiresIn = '14d', isElevated = false, year = null) {
     if (!process.env.JWT_SECRET) {
         throw new AppError('JWT_SECRET is not defined in environment variables', 500);
     }
     
+    const payload = { 
+        userId, 
+        elevated: isElevated,
+        year: year || getCurrentActiveYear()
+    };
+    
     return jwt.sign(
-        { userId, elevated: isElevated },
+        payload,
         process.env.JWT_SECRET,
         { expiresIn }
     );
@@ -28,12 +39,22 @@ const authenticateToken = catchAsync(async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
+    // Get year from token or use current year as fallback
+    const userYear = decoded.year || getCurrentActiveYear();
+    
+    if (!validateYear(userYear)) {
+        return next(new AppError('Invalid year in token', 401));
+    }
+    
+    const User = getUserModelForYear(userYear);
     const user = await User.findById(decoded.userId);
+    
     if (!user) {
         return next(new AppError('The user belonging to this token no longer exists', 401));
     }
 
     req.user = user;
+    req.userYear = userYear; // Store the year for use in routes
     next();
 });
 
@@ -55,8 +76,16 @@ const checkElevated = catchAsync(async (req, res, next) => {
         return next(new AppError('Elevated privileges required', 403));
     }
 
+    // Get year from token or use current year as fallback
+    const userYear = decoded.year || getCurrentActiveYear();
+    
+    if (!validateYear(userYear)) {
+        return next(new AppError('Invalid year in token', 401));
+    }
+
     req.userId = decoded.userId;
+    req.userYear = userYear;
     next();
 });
 
-module.exports = { genToken, authenticateToken, checkElevated };
+module.exports = { genToken, authenticateToken, checkElevated, getCurrentActiveYear };
