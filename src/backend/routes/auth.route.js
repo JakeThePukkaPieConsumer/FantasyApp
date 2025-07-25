@@ -1,6 +1,5 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const User = require('../models/userSchema');
 const { getUserModelForYear, validateYear, getAvailableYears } = require('../models/modelPerYear');
 const { genToken, authenticateToken } = require('../middleware/auth');
 const { loginValidation, yearValidation } = require('../middleware/validation');
@@ -8,14 +7,23 @@ const { AppError, catchAsync } = require('../middleware/errorHandler');
 const { param } = require('express-validator');
 const router = express.Router();
 
-// Get users from main collection (current active users)
+// Get current active year (you might want to make this configurable)
+const getCurrentActiveYear = () => {
+    return new Date().getFullYear().toString();
+};
+
+// Get users from current active year
 router.get('/', 
     authenticateToken,
     catchAsync(async (req, res) => {
+        const currentYear = getCurrentActiveYear();
+        const User = getUserModelForYear(currentYear);
+        
         const users = await User.find({}, { pin: 0 }).sort({ username: 1 });
         res.status(200).json({ 
             success: true, 
-            message: 'Current active users',
+            message: `Current active users (${currentYear})`,
+            year: parseInt(currentYear),
             count: users.length,
             users 
         });
@@ -40,16 +48,17 @@ router.get('/years',
             })
         );
 
-        const mainUserCount = await User.countDocuments();
-        const currentYear = new Date().getFullYear();
+        const currentYear = getCurrentActiveYear();
+        const currentUserModel = getUserModelForYear(currentYear);
+        const currentUserCount = await currentUserModel.countDocuments();
         
         res.status(200).json({
             success: true,
             message: 'Available years with user data',
             current: {
-                year: currentYear,
-                userCount: mainUserCount,
-                collection: 'main'
+                year: parseInt(currentYear),
+                userCount: currentUserCount,
+                collection: `users_${currentYear}`
             },
             historical: yearStats.filter(y => y.userCount > 0)
         });
@@ -165,13 +174,22 @@ router.get('/:year/:id',
     })
 );
 
-// Login endpoint (uses main User collection)
+// Login endpoint - now accepts year parameter or defaults to current year
 router.post('/login', 
     loginValidation, 
     catchAsync(async (req, res, next) => {
-        const { username, pin } = req.body;
-
+        const { username, pin, year } = req.body;
+        
+        // Use provided year or default to current year
+        const loginYear = year || getCurrentActiveYear();
+        
+        if (!validateYear(loginYear)) {
+            return next(new AppError('Invalid year provided', 400));
+        }
+        
+        const User = getUserModelForYear(loginYear);
         const user = await User.findOne({ username }).select('+pin');
+        
         if (!user) {
             return next(new AppError('Invalid credentials', 401));
         }
@@ -181,12 +199,14 @@ router.post('/login',
             return next(new AppError('Invalid credentials', 401));
         }
 
-        const token = genToken(user._id);
+        // Include year in token payload
+        const token = genToken(user._id, '14d', false, loginYear);
 
         res.status(200).json({ 
             success: true,
             message: 'Login successful', 
             token,
+            year: parseInt(loginYear),
             user: { 
                 id: user._id,
                 username: user.username, 
@@ -203,9 +223,11 @@ router.get('/verify',
     authenticateToken, 
     (req, res) => {
         const { _id, username, role, budget, points } = req.user;
+        const year = req.userYear; // This will be set by the authenticateToken middleware
 
         res.status(200).json({ 
             success: true,
+            year: parseInt(year),
             user: { 
                 id: _id,
                 username, 
@@ -247,25 +269,28 @@ router.get('/search/:query',
                 }))
             });
         } else {
-            // Search current users
-            const currentUsers = await User.find(
+            // Search current year
+            const currentYear = getCurrentActiveYear();
+            const CurrentUser = getUserModelForYear(currentYear);
+            const currentUsers = await CurrentUser.find(
                 { username: searchRegex },
                 { pin: 0 }
             ).limit(10);
             
             if (currentUsers.length > 0) {
                 results.push({
-                    year: 'current',
+                    year: parseInt(currentYear),
                     users: currentUsers.map(user => ({
                         ...user.toObject(),
-                        collection: 'users'
+                        collection: `users_${currentYear}`
                     }))
                 });
             }
 
-            // Search available years
+            // Search available years (excluding current year)
             const years = await getAvailableYears();
-            const yearSearches = years.slice(0, 3).map(async (yr) => {
+            const otherYears = years.filter(yr => yr.toString() !== currentYear);
+            const yearSearches = otherYears.slice(0, 3).map(async (yr) => {
                 try {
                     const UserYear = getUserModelForYear(yr);
                     const users = await UserYear.find(
