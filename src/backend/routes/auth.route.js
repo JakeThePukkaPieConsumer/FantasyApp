@@ -210,18 +210,16 @@ router.get('/verify',
     authenticateToken, 
     (req, res) => {
         const { _id, username, role, budget, points } = req.user;
-        const year = req.userYear; 
 
         res.status(200).json({ 
             success: true,
-            year: parseInt(year),
             user: { 
                 id: _id,
                 username, 
                 role, 
                 budget,
                 points 
-            } 
+            },
         });
     }
 );
