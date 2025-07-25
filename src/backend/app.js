@@ -14,11 +14,9 @@ const driverRoutes = require('./routes/driver.route');
 
 const app = express();
 
-// Security middleware
 app.use(helmet());
 app.set('trust proxy', 1);
 
-// Rate limiting
 const limiter = rateLimit({
     max: 100, // limit each IP to 100 requests per windowMs
     windowMs: 15 * 60 * 1000, // 15 minutes

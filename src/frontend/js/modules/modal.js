@@ -184,11 +184,13 @@ class ModalModule {
 
         const nameEl = document.getElementById('driver-name');
         const valueEl = document.getElementById('driver-value');
+        const pointsEl = document.getElementById('driver-points');
         const imageEl = document.getElementById('driver-image');
         const descEl = document.getElementById('driver-description');
 
         if (nameEl) nameEl.value = driver.name;
         if (valueEl) valueEl.value = driver.value;
+        if (pointsEl) valueEl.value = driver.points;
         if (imageEl) imageEl.value = driver.imageURL || '';
         if (descEl) descEl.value = driver.description || '';
 

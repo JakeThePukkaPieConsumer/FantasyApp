@@ -137,6 +137,55 @@ const updateDriverValidation = [
     handleValidationErrors
 ];
 
+const createRosterValidation = [
+    body('user')
+        .notEmpty()
+        .withMessage('User ID is required')
+        .custom(value => mongoose.Types.ObjectId.isValid(value))
+        .withMessage('User Id must be a valid MongoDB ObjectId'),
+    body('drivers')
+        .isArray({ min: 1})
+        .withMessage('Drivers must be a non-empty array'),
+    body('drivers.*')
+        .custom(value => mongoose.Types.ObjectId.isValid(value))
+        .withMessage('Each driver ID must be a valid mongoDB ObjectId'),
+    body('budgetUsed')
+        .isFloat({ min: 0 })
+        .withMessage('Budget used must be a number greater than or equal to 0'),
+    body('pointsEarned')
+        .isNumeric()
+        .withMessage('Points earned must be a number'),
+    body('race')
+        .notEmpty()
+        .withMessage('Race ID is required')
+        .custom(value => mongoose.Types.ObjectId.isValid(value))
+        .withMessage('Race ID must be a valid MongoDB ObjectId'),
+    handleValidationErrors
+]
+
+const updateRosterValidation = [
+    body('user')
+        .optional()
+        .custom(value => mongoose.Types.ObjectId.isValid(value))
+        .withMessage('User Id must be a valid mongoDB ObjectId'),
+    body('drivers')
+        .optional()
+        .isArray({ min: 1 })
+        .withMessage('Drivers must be a non-empty array'),
+    body('budgetUsed')
+        .isFloat({ min: 0 })
+        .withMessage('Budget used must be a number greater than or equal to 0'),
+    body('pointEarned')
+        .isNumeric()
+        .withMessage('Points earned must be a number'),
+    body('race')
+        .notEmpty()
+        .withMessage('Race ID is required')
+        .custom(value => mongoose.Types.ObjectId.isValid(value))
+        .withMessage('Race ID must be a valid mongoDB ObjectId'),
+    handleValidationErrors
+]
+
 const mongoIdValidation = (paramName = 'id') => {
   return (req, res, next) => {
     const id = req.params[paramName];

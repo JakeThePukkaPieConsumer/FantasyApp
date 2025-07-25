@@ -336,7 +336,7 @@ class DriverSelection {
     }
 
     async saveTeam() {
-        if (this.selectedDrivers.length !== this.maxDrivers) {
+        if (this.selectedDrivers.length >= this.maxDrivers) {
             notificationModule.warning(`Please select exactly ${this.maxDrivers} drivers before saving.`);
             return;
         }

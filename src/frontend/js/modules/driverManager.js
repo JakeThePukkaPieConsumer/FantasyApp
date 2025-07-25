@@ -71,7 +71,7 @@ class DriverManager {
         if (this.drivers.length === 0) {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td colspan="4" class="text-center text-tertiary">
+                <td colspan="5" class="text-center text-tertiary">
                     <div class="flex items-center justify-center gap-2 py-8">
                         <span>No drivers found</span>
                     </div>
@@ -97,6 +97,10 @@ class DriverManager {
         const valueTd = document.createElement('td');
         valueTd.textContent = `£${driver.value}`;
         row.appendChild(valueTd);
+        
+        const pointsTd = document.createElement('td');
+        pointsTd.textContent = driver.points;
+        row.appendChild(pointsTd);
 
         const catTd = document.createElement('td');
         catTd.textContent = driver.categories.join(', ');
@@ -134,6 +138,7 @@ class DriverManager {
         const driverData = {
             name: formData.get('name'),
             value: parseFloat(formData.get('value')) || 0,
+            points: parseFloat(formData.get('points')) || 0,
             categories: categories
         };
 

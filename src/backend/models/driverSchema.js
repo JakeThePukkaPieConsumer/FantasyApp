@@ -13,6 +13,12 @@ const driverSchema = new mongoose.Schema({
         min: 0,
         default: 0
     },
+    points: {
+        type: Number,
+        required: false,
+        min: 0,
+        default: 0
+    },
     categories: {
         type: [String],
         required: true,
@@ -28,4 +34,4 @@ const driverSchema = new mongoose.Schema({
     description: { type: String, required: false }
 });
 
-module.exports = mongoose.model('Driver', driverSchema);
+module.exports = driverSchema;
