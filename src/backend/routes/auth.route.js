@@ -4,17 +4,13 @@ const { getUserModelForYear, validateYear, getAvailableYears } = require('../mod
 const { genToken, authenticateToken } = require('../middleware/auth');
 const { loginValidation, yearValidation } = require('../middleware/validation');
 const { AppError, catchAsync } = require('../middleware/errorHandler');
-const { param } = require('express-validator');
 const router = express.Router();
 
-// Get current active year (you might want to make this configurable)
 const getCurrentActiveYear = () => {
     return new Date().getFullYear().toString();
 };
 
-// Get users from current active year
 router.get('/', 
-    authenticateToken,
     catchAsync(async (req, res) => {
         const currentYear = getCurrentActiveYear();
         const User = getUserModelForYear(currentYear);
@@ -30,7 +26,6 @@ router.get('/',
     })
 );
 
-// Get all available years with user data
 router.get('/years',
     authenticateToken,
     catchAsync(async (req, res) => {
@@ -65,9 +60,7 @@ router.get('/years',
     })
 );
 
-// Get users from specific year collection
 router.get('/:year', 
-    authenticateToken,
     yearValidation,
     catchAsync(async (req, res) => {
         const year = req.params.year;
@@ -100,7 +93,6 @@ router.get('/:year',
     })
 );
 
-// Get user statistics for a specific year
 router.get('/:year/stats',
     authenticateToken,
     yearValidation,
@@ -148,7 +140,6 @@ router.get('/:year/stats',
     })
 );
 
-// Get single user from specific year
 router.get('/:year/:id',
     authenticateToken,
     yearValidation,
@@ -174,13 +165,11 @@ router.get('/:year/:id',
     })
 );
 
-// Login endpoint - now accepts year parameter or defaults to current year
 router.post('/login', 
     loginValidation, 
     catchAsync(async (req, res, next) => {
         const { username, pin, year } = req.body;
         
-        // Use provided year or default to current year
         const loginYear = year || getCurrentActiveYear();
         
         if (!validateYear(loginYear)) {
@@ -199,7 +188,6 @@ router.post('/login',
             return next(new AppError('Invalid credentials', 401));
         }
 
-        // Include year in token payload
         const token = genToken(user._id, '14d', false, loginYear);
 
         res.status(200).json({ 
@@ -218,12 +206,11 @@ router.post('/login',
     })
 );
 
-// Verify token endpoint
 router.get('/verify', 
     authenticateToken, 
     (req, res) => {
         const { _id, username, role, budget, points } = req.user;
-        const year = req.userYear; // This will be set by the authenticateToken middleware
+        const year = req.userYear; 
 
         res.status(200).json({ 
             success: true,
@@ -254,7 +241,6 @@ router.get('/search/:query',
         const results = [];
 
         if (year && validateYear(year)) {
-            // Search specific year
             const UserYear = getUserModelForYear(year);
             const users = await UserYear.find(
                 { username: searchRegex },
@@ -269,7 +255,6 @@ router.get('/search/:query',
                 }))
             });
         } else {
-            // Search current year
             const currentYear = getCurrentActiveYear();
             const CurrentUser = getUserModelForYear(currentYear);
             const currentUsers = await CurrentUser.find(
@@ -287,7 +272,6 @@ router.get('/search/:query',
                 });
             }
 
-            // Search available years (excluding current year)
             const years = await getAvailableYears();
             const otherYears = years.filter(yr => yr.toString() !== currentYear);
             const yearSearches = otherYears.slice(0, 3).map(async (yr) => {
