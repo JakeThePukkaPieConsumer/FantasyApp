@@ -236,7 +236,7 @@ class DriverSelection {
     }
 
     selectDriver(driver) {
-    if (this.selectedDrivers.length === this.maxDrivers) {
+    if (this.selectedDrivers.length >= this.maxDrivers) {
         notificationModule.warning(`You can only select ${this.maxDrivers} drivers.`);
         return;
     }
@@ -252,7 +252,7 @@ class DriverSelection {
         this.renderDrivers();
         this.renderSelectedDrivers();
         
-        if (this.selectedDrivers.length === this.maxDrivers) {
+        if (this.selectedDrivers.length <= this.maxDrivers) {
             const missing = this.getMissingCategories();
             if (missing.length > 0) {
                 notificationModule.warning(
@@ -317,7 +317,7 @@ class DriverSelection {
         const teamValue = this.getTeamValue();
         const budgetRemaining = this.currentUser.budget - teamValue;
         const selectedCount = this.selectedDrivers.length;
-        const isComplete = selectedCount === this.maxDrivers;
+        const isComplete = selectedCount <= this.maxDrivers;
 
         document.getElementById('selected-count').textContent = selectedCount;
         document.getElementById('budget-remaining').textContent = authModule.formatCurrency(budgetRemaining);
