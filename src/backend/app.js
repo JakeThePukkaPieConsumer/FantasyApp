@@ -7,7 +7,6 @@ const helmet = require('helmet');
 const { globalErrorHandler, AppError } = require('./middleware/errorHandler');
 const { formatUptime } = require('./utils/formatTme');
 
-// Routes
 const authRoutes = require('./routes/auth.route');   
 const userRoutes = require('./routes/user.route');
 const driverRoutes = require('./routes/driver.route');
@@ -29,29 +28,23 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// Body parsing middleware
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-// CORS
-app.use(cors());
+app.use(cors({ credentials: true }));
 
-// Logging
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan("dev"));
 }
 
-// Serve static files
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// HTML page routes - these handle direct navigation
 app.get("/", (req, res) => res.redirect('/login.html'));
 app.get("/login", (req, res) => res.redirect('/login.html'));
 app.get("/dashboard", (req, res) => res.redirect('/dashboard.html'));
 app.get("/admin", (req, res) => res.redirect('/admin.html'));
 app.get("/select-drivers", (req, res) => res.redirect('/select-drivers.html'));
 
-// Health check endpoint
 app.get("/api/health", (req, res) => {
     try {
         res.status(200).json({
@@ -78,7 +71,6 @@ app.use('/api/rosters', rosterRoutes);
 app.use('/api/admin/users', userRoutes);
 app.use('/api/years', yearRoutes);
 
-// Handle undefined routes
 app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
         next(new AppError(`API endpoint ${req.originalUrl} not found`, 404));

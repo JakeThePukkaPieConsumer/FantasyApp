@@ -26,7 +26,8 @@ class LoginPage {
     async loadUsers() {
         try {
             const result = await authModule.loadUsers();
-            
+            console.log(result);
+
             if (result.success) {
                 this.users = result.users;
                 this.populateUserDropdown();
@@ -68,9 +69,7 @@ class LoginPage {
             });
 
             pinInput.addEventListener('keydown', (e) => {
-                // Allow: backspace, delete, tab, escape, enter
                 if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
-                    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
                     (e.keyCode === 65 && e.ctrlKey === true) ||
                     (e.keyCode === 67 && e.ctrlKey === true) ||
                     (e.keyCode === 86 && e.ctrlKey === true) ||
@@ -83,8 +82,6 @@ class LoginPage {
                 }
             });
         }
-
-        // Username selection
         const usernameSelect = document.getElementById('username');
         if (usernameSelect) {
             usernameSelect.addEventListener('change', () => {

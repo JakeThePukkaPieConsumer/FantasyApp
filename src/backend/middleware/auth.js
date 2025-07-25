@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const { getUserModelForYear, validateYear } = require('../models/modelPerYear');
 const { AppError, catchAsync } = require('./errorHandler');
 
-// Get current active year (you might want to make this configurable)
 const getCurrentActiveYear = () => {
     return new Date().getFullYear().toString();
 };
@@ -39,7 +38,6 @@ const authenticateToken = catchAsync(async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Get year from token or use current year as fallback
     const userYear = decoded.year || getCurrentActiveYear();
     
     if (!validateYear(userYear)) {
@@ -54,7 +52,7 @@ const authenticateToken = catchAsync(async (req, res, next) => {
     }
 
     req.user = user;
-    req.userYear = userYear; // Store the year for use in routes
+    req.userYear = userYear;
     next();
 });
 
@@ -76,7 +74,6 @@ const checkElevated = catchAsync(async (req, res, next) => {
         return next(new AppError('Elevated privileges required', 403));
     }
 
-    // Get year from token or use current year as fallback
     const userYear = decoded.year || getCurrentActiveYear();
     
     if (!validateYear(userYear)) {

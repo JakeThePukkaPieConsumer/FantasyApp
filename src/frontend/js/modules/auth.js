@@ -82,7 +82,7 @@ class AuthModule {
 
     async login(username, pin) {
         try {
-            const res = await fetch('/api/auth/user/login', {
+            const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: username.trim(), pin }),
@@ -115,15 +115,19 @@ class AuthModule {
 
     async loadUsers() {
         try {
-            const res = await fetch('/api/auth/user/users', {
-                cache: 'no-store'
-            });
-            const users = await res.json();
+            const res = await fetch('/api/auth/', { cache: 'no-store' });
+            const data = await res.json();
 
-            // Sort users alphabetically
-            users.sort((a, b) => a.username.localeCompare(b.username));
-            
-            return { success: true, users };
+            if (!data.users || !Array.isArray(data.users)) {
+                throw new Error('Users data is not an array');
+            }
+
+            data.users.sort((a, b) => {
+                if (!a.username || !b.username) return 0;
+                return a.username.toLowerCase().localeCompare(b.username.toLowerCase());
+            });
+
+            return { success: true, users: data.users };
 
         } catch (error) {
             console.error('Error loading users:', error);
