@@ -6,7 +6,7 @@ const eventSchema = new mongoose.Schema({
     status: { type: String, default: 'scheduled' },
 });
 
-const raceSchema = new mongoose.Schema({
+const raceSchemaWithEvents = new mongoose.Schema({
     roundNumber: { type: Number, required: true },
     name: { type: String, required: true },
     location: { type: String },
@@ -15,9 +15,4 @@ const raceSchema = new mongoose.Schema({
     isLocked: { type: Boolean, default: false }
 });
 
-function getRaceModelForYear(year) {
-    const collectionName = `races_${year}`;
-    return mongoose.model(`Race_${year}`, raceSchema, collectionName);
-}
-
-module.exports = { getRaceModelForYear };
+module.exports = raceSchemaWithEvents;

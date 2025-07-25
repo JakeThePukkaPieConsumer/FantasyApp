@@ -1,4 +1,4 @@
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, param } = require('express-validator');
 const { AppError } = require('./errorHandler');
 const mongoose = require('mongoose');
 
@@ -197,6 +197,53 @@ const mongoIdValidation = (paramName = 'id') => {
   };
 };
 
+const yearValidation = [
+    param('year')
+        .matches(/^\d{4}$/)
+        .withMessage('Year must be a 4-digit number')
+        .custom(value => {
+            if (!validateYear(value)) {
+                throw new Error(`Invalid year: ${value}. Must be between 2000 and ${new Date().getFullYear() + 5}`);
+            }
+            return true;
+        }),
+    handleValidationErrors
+];
+
+const copyYearValidation = [
+    body('sourceYear')
+        .matches(/^\d{4}$/)
+        .withMessage('Source year must be a 4-digit number')
+        .custom(value => {
+            if (!validateYear(value)) {
+                throw new Error(`Invalid source year: ${value}`);
+            }
+            return true;
+        }),
+    body('targetYear')
+        .matches(/^\d{4}$/)
+        .withMessage('Target year must be a 4-digit number')
+        .custom(value => {
+            if (!validateYear(value)) {
+                throw new Error(`Invalid target year: ${value}`);
+            }
+            return true;
+        }),
+    body('collections')
+        .optional()
+        .isArray()
+        .withMessage('Collections must be an array')
+        .custom(value => {
+            const validCollections = ['drivers', 'users', 'races'];
+            const invalidCollections = value.filter(col => !validCollections.includes(col));
+            if (invalidCollections.length > 0) {
+                throw new Error(`Invalid collections: ${invalidCollections.join(', ')}. Valid options: ${validCollections.join(', ')}`);
+            }
+            return true;
+        }),
+    handleValidationErrors
+];
+
 const checkElevationConfig = (req, res, next) => {
     if (!process.env.ELEVATION_SECRET) {
         return next(new AppError('Elevation system not configured', 500));
@@ -213,5 +260,7 @@ module.exports = {
     handleValidationErrors,
     loginValidation,
     createDriverValidation,
-    updateDriverValidation
+    updateDriverValidation,
+    yearValidation,
+    copyYearValidation
 };
