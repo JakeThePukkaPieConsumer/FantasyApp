@@ -184,22 +184,15 @@ class DriverSelection {
         const card = template.content.cloneNode(true);
         
         const cardElement = card.querySelector('.driver-card');
-        const image = card.querySelector('.driver-image');
         const categoriesContainer = card.querySelector('.driver-categories');
         const name = card.querySelector('.driver-name');
         const value = card.querySelector('.driver-value');
-        const description = card.querySelector('.driver-description');
         const selectBtn = card.querySelector('.select-driver-btn');
         const removeBtn = card.querySelector('.remove-driver-btn');
 
         cardElement.dataset.driverId = driver._id;
         cardElement.dataset.categories = driver.categories.join(',');
         cardElement.dataset.value = driver.value;
-
-        if (driver.imageURL) {
-            image.src = driver.imageURL;
-        }
-        image.alt = `${driver.name} photo`;
 
         categoriesContainer.innerHTML = '';
         driver.categories.forEach(category => {
@@ -211,7 +204,6 @@ class DriverSelection {
 
         name.textContent = driver.name;
         value.textContent = `£${authModule.formatCurrency(driver.value)}`;
-        description.textContent = driver.description || 'No description available.';
 
         const isSelected = this.selectedDrivers.some(d => d._id === driver._id);
         const canAfford = this.currentUser.budget - this.getTeamValue() >= driver.value;
@@ -244,7 +236,7 @@ class DriverSelection {
     }
 
     selectDriver(driver) {
-    if (this.selectedDrivers.length === this.maxDrivers) {
+    if (this.selectedDrivers.length >= this.maxDrivers) {
         notificationModule.warning(`You can only select ${this.maxDrivers} drivers.`);
         return;
     }
@@ -260,7 +252,7 @@ class DriverSelection {
         this.renderDrivers();
         this.renderSelectedDrivers();
         
-        if (this.selectedDrivers.length === this.maxDrivers) {
+        if (this.selectedDrivers.length <= this.maxDrivers) {
             const missing = this.getMissingCategories();
             if (missing.length > 0) {
                 notificationModule.warning(
@@ -325,7 +317,7 @@ class DriverSelection {
         const teamValue = this.getTeamValue();
         const budgetRemaining = this.currentUser.budget - teamValue;
         const selectedCount = this.selectedDrivers.length;
-        const isComplete = selectedCount === this.maxDrivers;
+        const isComplete = selectedCount <= this.maxDrivers;
 
         document.getElementById('selected-count').textContent = selectedCount;
         document.getElementById('budget-remaining').textContent = authModule.formatCurrency(budgetRemaining);
@@ -344,7 +336,7 @@ class DriverSelection {
     }
 
     async saveTeam() {
-        if (this.selectedDrivers.length !== this.maxDrivers) {
+        if (this.selectedDrivers.length >= this.maxDrivers) {
             notificationModule.warning(`Please select exactly ${this.maxDrivers} drivers before saving.`);
             return;
         }

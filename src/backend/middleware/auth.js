@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/user');
+const User = require('../models/userSchema');
 const { AppError, catchAsync } = require('./errorHandler');
 
 function genToken(userId, expiresIn = '14d', isElevated = false) {

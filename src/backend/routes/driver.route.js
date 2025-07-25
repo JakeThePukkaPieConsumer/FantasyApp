@@ -1,6 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const Driver = require('../models/drivers');
+const { getDriverModelForYear } = require('../models/modelPerYear');
 const {
     createDriverValidation,
     updateDriverValidation,
@@ -15,9 +15,11 @@ const { authenticateToken, checkElevated } = require('../middleware/auth');
 const router = express.Router();
 
 // Get all drivers
-router.get('/drivers',
+router.get('/:year/',
     authenticateToken,
     catchAsync(async (req, res) => {
+        const year = req.params.year;
+        const Driver = getDriverModelForYear(year);
         const drivers = await Driver.find().select('-__v');
         res.status(200).json({
             success: true,
@@ -27,12 +29,14 @@ router.get('/drivers',
 );
 
 // Create a new driver
-router.post('/admin/drivers',
+router.post('/admin/:year/drivers',
     authenticateToken,
     checkRole('admin'),
     checkElevated,
     createDriverValidation,
     catchAsync(async (req, res) => {
+        const year = req.params.year;
+        const Driver = getDriverModelForYear(year);
         const { name, value = 0, categories } = req.body;
 
         const trimmedName = name.trim();
@@ -69,7 +73,7 @@ router.post('/admin/drivers',
 );
 
 // Update a current driver
-router.put('/admin/drivers/:id',
+router.put('/admin/:year/drivers/:id',
     authenticateToken,
     checkRole('admin'),
     checkElevated,
@@ -78,8 +82,10 @@ router.put('/admin/drivers/:id',
     catchAsync(async (req, res) => {
         const driverId = req.params.id;
         const updates = req.body;
+        const year = req.params.year;
+        const Driver = getDriverModelForYear(year);
 
-        const allowedUpdated = ['name', 'value', 'categories', 'imageURL', 'description'];
+        const allowedUpdated = ['name', 'value', 'points', 'categories', 'imageURL', 'description'];
         const actualUpdates = Object.keys(updates).filter(key => allowedUpdated.includes(key));
 
         if (actualUpdates.length === 0) {
@@ -124,13 +130,15 @@ router.put('/admin/drivers/:id',
 );
 
 // Delete a current driver
-router.delete('/admin/drivers/:id',
+router.delete('/admin/:year/drivers/:id',
     authenticateToken,
     checkRole('admin'),
     checkElevated,
     mongoIdValidation(),
     catchAsync(async (req, res) => {
         const driverIdToDelete = req.params.id;
+        const year = req.params.year;
+        const Driver = getDriverModelForYear(year);
 
         const driverToDelete = await Driver.findById(driverIdToDelete);
         if (!driverToDelete) {
@@ -146,16 +154,19 @@ router.delete('/admin/drivers/:id',
                 id: driverToDelete._id,
                 name: driverToDelete.name,
                 categories: driverToDelete.categories,
-                value: driverToDelete.value
+                value: driverToDelete.value,
+                value: driverToDelete.points
             }
         });
     })
 );
 
 // Get driver statistics
-router.get('/stats',
+router.get('/:year/stats',
     authenticateToken,
     catchAsync(async (req, res) => {
+        const year = req.params.year;
+        const Driver = getDriverModelForYear(year);
         const [
             totalDriver,
             totalValueAgg
@@ -169,7 +180,7 @@ router.get('/stats',
         res.status(200).json({
             success: true,
             stats: {
-                users: {          // maybe rename 'users' to 'drivers' for clarity?
+                drivers: {
                     total: totalDriver
                 },
                 value: {
