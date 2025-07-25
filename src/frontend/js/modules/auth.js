@@ -39,7 +39,7 @@ class AuthModule {
 
         try {
             console.log('Verifying token...');
-            const res = await fetch('/api/auth/user/verify', {
+            const res = await fetch('/api/auth/verify', {
                 method: 'GET',
                 headers: { 
                     'Authorization': `Bearer ${token}`,

@@ -10,6 +10,7 @@ const getCurrentActiveYear = () => {
     return new Date().getFullYear().toString();
 };
 
+
 router.get('/', 
     catchAsync(async (req, res) => {
         const currentYear = getCurrentActiveYear();
@@ -24,6 +25,24 @@ router.get('/',
             users 
         });
     })
+);
+
+router.get('/verify', 
+    authenticateToken, 
+    (req, res) => {
+        const { _id, username, role, budget, points } = req.user;
+
+        res.status(200).json({ 
+            success: true,
+            user: { 
+                id: _id,
+                username, 
+                role, 
+                budget,
+                points 
+            },
+        });
+    }
 );
 
 router.get('/years',
@@ -204,24 +223,6 @@ router.post('/login',
             } 
         });
     })
-);
-
-router.get('/verify', 
-    authenticateToken, 
-    (req, res) => {
-        const { _id, username, role, budget, points } = req.user;
-
-        res.status(200).json({ 
-            success: true,
-            user: { 
-                id: _id,
-                username, 
-                role, 
-                budget,
-                points 
-            },
-        });
-    }
 );
 
 // Search users across years
