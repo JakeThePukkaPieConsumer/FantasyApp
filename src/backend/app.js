@@ -13,6 +13,7 @@ const driverRoutes = require("./routes/driver.route");
 const rosterRoutes = require("./routes/roster.route");
 const yearRoutes = require("./routes/year.route");
 const raceRoutes = require("./routes/race.route");
+const { initializeYear } = require("./utils/manageYears");
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.get("/api/health", (req, res) => {
 	}
 });
 
+initializeYear(2025);
 app.use("/api/auth", authRoutes);
 app.use("/api/drivers", driverRoutes);
 app.use("/api/roster", rosterRoutes);

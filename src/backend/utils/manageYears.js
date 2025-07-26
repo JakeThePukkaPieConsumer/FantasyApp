@@ -239,3 +239,5 @@ async function copyData(fromYear, toYear, collections = "drivers,users") {
 		console.error(chalk.red(`❌ Error copying data: ${error.message}`));
 	}
 }
+
+module.exports = { initializeYear };
