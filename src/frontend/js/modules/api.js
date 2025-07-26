@@ -1,497 +1,593 @@
 class ApiModule {
-    constructor(authModule) {
-        this.authModule = authModule;
-        this.baseURL = '';
-        this.currentYear = new Date().getFullYear().toString();
-    }
+	constructor(authModule) {
+		this.authModule = authModule;
+		this.baseURL = "";
+		this.currentYear = new Date().getFullYear().toString();
+	}
 
-    setCurrentYear(year) {
-        this.currentYear = year;
-    }
+	setCurrentYear(year) {
+		this.currentYear = year;
+	}
 
-    getHeaders(includeAuth = true, customHeaders = {}) {
-        const headers = {
-            'Content-Type': 'application/json',
-            ...customHeaders
-        };
+	getCurrentYear() {
+		return this.currentYear;
+	}
 
-        if (includeAuth) {
-            const token = this.authModule.getToken();
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-        }
+	getHeaders(includeAuth = true, customHeaders = {}) {
+		const headers = {
+			"Content-Type": "application/json",
+			...customHeaders,
+		};
 
-        return headers;
-    }
+		if (includeAuth) {
+			const token = this.authModule.getToken();
+			if (token) {
+				headers["Authorization"] = `Bearer ${token}`;
+			}
+		}
 
-    async request(endpoint, options = {}) {
-        const {
-            method = 'GET',
-            data,
-            headers = {},
-            includeAuth = true,
-            cache = 'no-store'
-        } = options;
+		return headers;
+	}
 
-        const requestOptions = {
-            method,
-            headers: this.getHeaders(includeAuth, headers),
-            cache
-        };
+	async request(endpoint, options = {}) {
+		const {
+			method = "GET",
+			data,
+			headers = {},
+			includeAuth = true,
+			cache = "no-store",
+		} = options;
 
-        if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-            requestOptions.body = JSON.stringify(data);
-        }
+		const requestOptions = {
+			method,
+			headers: this.getHeaders(includeAuth, headers),
+			cache,
+		};
 
-        try {
-            const response = await fetch(`${this.baseURL}${endpoint}`, requestOptions);
-            
-            const contentType = response.headers.get('content-type');
-            let responseData;
-            
-            if (contentType && contentType.includes('application/json')) {
-                responseData = await response.json();
-            } else {
-                responseData = await response.text();
-            }
+		if (
+			data &&
+			(method === "POST" || method === "PUT" || method === "PATCH")
+		) {
+			requestOptions.body = JSON.stringify(data);
+		}
 
-            if (!response.ok) {
-                const errorMessage = responseData?.message || responseData?.error || responseData || 'Request failed';
-                throw new Error(errorMessage);
-            }
+		try {
+			const response = await fetch(
+				`${this.baseURL}${endpoint}`,
+				requestOptions
+			);
 
-            return {
-                success: true,
-                data: responseData,
-                status: response.status
-            };
+			const contentType = response.headers.get("content-type");
+			let responseData;
 
-        } catch (error) {
-            console.error(`API request failed: ${method} ${endpoint}`, error);
-            return {
-                success: false,
-                error: error.message,
-                status: error.status || 0
-            };
-        }
-    }
+			if (contentType && contentType.includes("application/json")) {
+				responseData = await response.json();
+			} else {
+				responseData = await response.text();
+			}
 
-    async get(endpoint, options = {}) {
-        return this.request(endpoint, { ...options, method: 'GET' });
-    }
+			if (!response.ok) {
+				const errorMessage =
+					responseData?.message ||
+					responseData?.error ||
+					responseData ||
+					"Request failed";
+				throw new Error(errorMessage);
+			}
 
-    async post(endpoint, data, options = {}) {
-        return this.request(endpoint, { ...options, method: 'POST', data });
-    }
+			return {
+				success: true,
+				data: responseData,
+				status: response.status,
+			};
+		} catch (error) {
+			console.error(`API request failed: ${method} ${endpoint}`, error);
+			return {
+				success: false,
+				error: error.message,
+				status: error.status || 0,
+			};
+		}
+	}
 
-    async put(endpoint, data, options = {}) {
-        return this.request(endpoint, { ...options, method: 'PUT', data });
-    }
+	async get(endpoint, options = {}) {
+		return this.request(endpoint, { ...options, method: "GET" });
+	}
 
-    async delete(endpoint, options = {}) {
-        return this.request(endpoint, { ...options, method: 'DELETE' });
-    }
+	async post(endpoint, data, options = {}) {
+		return this.request(endpoint, { ...options, method: "POST", data });
+	}
 
-    async patch(endpoint, data, options = {}) {
-        return this.request(endpoint, { ...options, method: 'PATCH', data });
-    }
+	async put(endpoint, data, options = {}) {
+		return this.request(endpoint, { ...options, method: "PUT", data });
+	}
+
+	async delete(endpoint, options = {}) {
+		return this.request(endpoint, { ...options, method: "DELETE" });
+	}
+
+	async patch(endpoint, data, options = {}) {
+		return this.request(endpoint, { ...options, method: "PATCH", data });
+	}
 }
 
 class AuthApi extends ApiModule {
-    constructor(authModule) {
-        super(authModule);
-    }
+	constructor(authModule) {
+		super(authModule);
+	}
 
-    async login(username, pin, year = null) {
-        const loginData = { username, pin };
-        if (year) {
-            loginData.year = year;
-        }
+	async login(username, pin, year = null) {
+		const loginData = { username, pin };
+		if (year) {
+			loginData.year = year;
+		}
+		return this.post("/api/auth/login", loginData, { includeAuth: false });
+	}
 
-        return this.post('/auth/api/login', loginData, { includeAuth: false });
-    }
+	async verify() {
+		return this.get("/api/auth/verify");
+	}
 
-    async verify() {
-        return this.get('/api/auth/verify');
-    }
+	async getCurrentUsers() {
+		return this.get("/api/auth/");
+	}
 
-    async getCurrentUsers() {
-        return this.get('/api/auth');
-    }
+	async getUsersByYear(year, options = {}) {
+		const { role, sort = "username", order = "asc" } = options;
+		const params = new URLSearchParams();
+		if (role) params.append("role", role);
+		if (sort) params.append("sort", sort);
+		if (order) params.append("order", order);
 
-    async getUsersByYear(year, options = {}) {
-        const { role, sort = 'username', order = 'asc'} = options;
-        const params = new URLSearchParams();
-        if (role) params.append('role', role);
-        if (sort) params.append('sort', sort);
-        if (order) params.append('order', order);
+		const queryString = params.toString();
+		const endpoint = `/api/auth/${year}${
+			queryString ? `?${queryString}` : ""
+		}`;
+		return this.get(endpoint);
+	}
 
-        const queryString = params.toString();
-        const endpoint = `/api/auth/${year}${queryString ? `?${queryString}` : ''}`;
-        return this.get(endpoint);
-    }
+	async getAvailableYears() {
+		return this.get("/api/auth/years");
+	}
 
-    async getAvailableYears() {
-        return this.get('/api/auth/years');
-    }
+	async getUserStats(year) {
+		return this.get(`/api/auth/${year}/stats`);
+	}
 
-    async getUserById(year, userId) {
-        return this.get(`/api/auth/${year}/${userId}`);
-    }
+	async getUserById(year, userId) {
+		return this.get(`/api/auth/${year}/${userId}`);
+	}
 
-    async searchUsers(query, year = null) {
-        const params = new URLSearchParams();
-        if (year) params.append('year', year);
+	async searchUsers(query, year = null) {
+		const params = new URLSearchParams();
+		if (year) params.append("year", year);
 
-        const queryString = params.toString();
-        const endpoint = `/api/auth/search/${encodeURIComponent(query)}${queryString ? `?${queryString}` : ''}`;
-        return this.get(endpoint);
-    }
+		const queryString = params.toString();
+		const endpoint = `/api/auth/search/${encodeURIComponent(query)}${
+			queryString ? `?${queryString}` : ""
+		}`;
+		return this.get(endpoint);
+	}
 }
 
 class UserApi extends ApiModule {
-    constructor(authModule, elevationModule) {
-        super(authModule);
-        this.elevationModule = elevationModule;
-    }
+	constructor(authModule, elevationModule) {
+		super(authModule);
+		this.elevationModule = elevationModule;
+	}
 
-    async getUsers(year = null, options = {}) {
-        const { role, sort = 'username', order = 'asc' } = options;
-        const params = new URLSearchParams();
-        if (year) params.append('year', year);
-        if (role) params.append('role', role);
-        if (sort) params.append('sort', sort);
-        if (order) params.append('order', order);
+	async getUsers(year = null, options = {}) {
+		const { role, sort = "username", order = "asc" } = options;
+		const params = new URLSearchParams();
+		if (year) params.append("year", year);
+		if (role) params.append("role", role);
+		if (sort) params.append("sort", sort);
+		if (order) params.append("order", order);
 
-        const queryString = params.toString();
-        const endpoint = `/api/user/${queryString ? `?${queryString}` : ''}`;
-        return this.get(endpoint);
-    }
+		const queryString = params.toString();
+		const endpoint = `/api/admin/users/${
+			queryString ? `?${queryString}` : ""
+		}`;
+		return this.get(endpoint);
+	}
 
-    async getUserById(userId, year = null) {
-        const params = new URLSearchParams();
-        if (year) params.append('year', year);
-        
-        const queryString = params.toString();
-        const endpoint = `/api/user/${userId}${queryString ? `?${queryString}` : ''}`;
-        return this.get(endpoint);
-    }
+	async getUserById(userId, year = null) {
+		const params = new URLSearchParams();
+		if (year) params.append("year", year);
 
-    async createUser(userData, elevatedToken, year = null) {
-        const data = { ...userData };
-        if (year) {
-            data.year = year;
-        }
-        
-        return this.post('/api/user/users', data, {
-            includeAuth: false,
-            headers: { 'Authorization': `Bearer ${elevatedToken}` }
-        });
-    }
+		const queryString = params.toString();
+		const endpoint = `/api/admin/users/${userId}${
+			queryString ? `?${queryString}` : ""
+		}`;
+		return this.get(endpoint);
+	}
 
-    async updateUser(userId, userData, elevatedToken, year = null) {
-        const data = { ...userData };
-        if (year) {
-            data.year = year;
-        }
-        
-        return this.put(`/api/user/${userId}`, data, {
-            includeAuth: false,
-            headers: { 'Authorization': `Bearer ${elevatedToken}` }
-        });
-    }
+	async createUser(userData, elevatedToken, year = null) {
+		const data = { ...userData };
+		if (year) {
+			data.year = year;
+		}
 
-    async deleteUser(userId, elevatedToken, year = null) {
-        const params = new URLSearchParams();
-        if (year) params.append('year', year);
-        
-        const queryString = params.toString();
-        const endpoint = `/api/user/${userId}${queryString ? `?${queryString}` : ''}`;
-        
-        return this.delete(endpoint, {
-            includeAuth: false,
-            headers: { 'Authorization': `Bearer ${elevatedToken}` }
-        });
-    }
+		return this.post("/api/admin/users", data, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
 
-    async resetUserPin(userId, newPin, elevatedToken, year = null) {
-        const data = { newPin };
-        if (year) {
-            data.year = year;
-        }
-        
-        return this.post(`/api/user/${userId}/reset-pin`, data, {
-            includeAuth: false,
-            headers: { 'Authorization': `Bearer ${elevatedToken}` }
-        });
-    }
+	async updateUser(userId, userData, elevatedToken, year = null) {
+		const data = { ...userData };
+		if (year) {
+			data.year = year;
+		}
 
-    async getUserStats(year = null) {
-        const params = new URLSearchParams();
-        if (year) params.append('year', year);
-        
-        const queryString = params.toString();
-        const endpoint = `/api/user/stats${queryString ? `?${queryString}` : ''}`;
-        return this.get(endpoint);
-    }
+		return this.put(`/api/admin/users/${userId}`, data, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
 
-    async requestElevation(elevationKey) {
-        return this.post('/api/user/elevate', { elevationKey });
-    }
+	async deleteUser(userId, elevatedToken, year = null) {
+		const params = new URLSearchParams();
+		if (year) params.append("year", year);
+
+		const queryString = params.toString();
+		const endpoint = `/api/admin/users/${userId}${
+			queryString ? `?${queryString}` : ""
+		}`;
+
+		return this.delete(endpoint, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
+
+	async resetUserPin(userId, newPin, elevatedToken, year = null) {
+		const data = { newPin };
+		if (year) {
+			data.year = year;
+		}
+
+		return this.post(`/api/admin/users/${userId}/reset-pin`, data, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
+
+	async getUserStats(year = null) {
+		const params = new URLSearchParams();
+		if (year) params.append("year", year);
+
+		const queryString = params.toString();
+		const endpoint = `/api/admin/users/stats${
+			queryString ? `?${queryString}` : ""
+		}`;
+		return this.get(endpoint);
+	}
+
+	async requestElevation(elevationKey) {
+		return this.post("/api/admin/users/elevate", { elevationKey });
+	}
 }
-
 class DriverApi extends ApiModule {
-    constructor(authModule, elevationModule) {
-        super(authModule);
-        this.elevationModule = elevationModule;
-    }
+	constructor(authModule, elevationModule) {
+		super(authModule);
+		this.elevationModule = elevationModule;
+	}
 
-    async getAvailableYears() {
-        return this.get('/api/driver/');
-    }
+	async getAvailableYears() {
+		return this.get("/api/drivers/");
+	}
 
-    async getDrivers(year, options = {}) {
-        const { category, sort = 'name', order = 'asc' } = options;
-        const params = new URLSearchParams();
-        if (category) params.append('category', category);
-        if (sort) params.append('sort', sort);
-        if (order) params.append('order', order);
-        
-        const queryString = params.toString();
-        const endpoint = `/api/driver/${year}${queryString ? `?${queryString}` : ''}`;
-        return this.get(endpoint);
-    }
+	async getDrivers(year, options = {}) {
+		const { category, sort = "name", order = "asc" } = options;
+		const params = new URLSearchParams();
+		if (category) params.append("category", category);
+		if (sort) params.append("sort", sort);
+		if (order) params.append("order", order);
 
-    async getDriverById(year, driverId) {
-        return this.get(`/api/driver/${year}/${driverId}`);
-    }
+		const queryString = params.toString();
+		const endpoint = `/api/drivers/${year}${
+			queryString ? `?${queryString}` : ""
+		}`;
+		return this.get(endpoint);
+	}
 
-    async createDriver(year, driverData, elevatedToken) {
-        return this.post(`/api/driver/${year}`, driverData, {
-            includeAuth: false,
-            headers: { 'Authorization': `Bearer ${elevatedToken}` }
-        });
-    }
+	async getDriverById(year, driverId) {
+		return this.get(`/api/driver/${year}/${driverId}`);
+	}
 
-    async updateDriver(year, driverId, driverData, elevatedToken) {
-        return this.put(`/api/driver/${year}/${driverId}`, driverData, {
-            includeAuth: false,
-            headers: { 'Authorization': `Bearer ${elevatedToken}` }
-        });
-    }
+	async createDriver(year, driverData, elevatedToken) {
+		return this.post(`/api/drivers/${year}`, driverData, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
 
-    async deleteDriver(year, driverId, elevatedToken) {
-        return this.delete(`/api/driver/${year}/${driverId}`, {
-            includeAuth: false,
-            headers: { 'Authorization': `Bearer ${elevatedToken}` }
-        });
-    }
+	async updateDriver(year, driverId, driverData, elevatedToken) {
+		return this.put(`/api/drivers/${year}/${driverId}`, driverData, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
 
-    async getDriverStats(year) {
-        return this.get(`/api/driver/${year}/stats`);
-    }
+	async deleteDriver(year, driverId, elevatedToken) {
+		return this.delete(`/api/drivers/${year}/${driverId}`, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
+
+	async getDriverStats(year) {
+		return this.get(`/api/drivers/${year}/stats`);
+	}
+}
+class RosterApi extends ApiModule {
+	constructor(authModule) {
+		super(authModule);
+	}
+
+	async getRosters(year, options = {}) {
+		const { user, race, sort = "createdAt", order = "desc" } = options;
+		const params = new URLSearchParams();
+		if (user) params.append("user", user);
+		if (race) params.append("race", race);
+		if (sort) params.append("sort", sort);
+		if (order) params.append("order", order);
+
+		const queryString = params.toString();
+		const endpoint = `/api/roster/${year}${
+			queryString ? `?${queryString}` : ""
+		}`;
+		return this.get(endpoint);
+	}
+
+	async getRosterById(year, rosterId) {
+		return this.get(`/api/roster/${year}/${rosterId}`);
+	}
+
+	async createRoster(year, rosterData) {
+		return this.post(`/api/roster/${year}`, rosterData);
+	}
+
+	async updateRoster(year, rosterId, rosterData) {
+		return this.put(`/api/roster/${year}/${rosterId}`, rosterData);
+	}
+
+	async deleteRoster(year, rosterId) {
+		return this.delete(`/api/roster/${year}/${rosterId}`);
+	}
+
+	async getRosterStats(year) {
+		return this.get(`/api/roster/${year}/stats`);
+	}
+
+	async getUserRosters(year, userId) {
+		return this.get(`/api/roster/${year}/user/${userId}`);
+	}
 }
 
-class RosterApi extends ApiModule {
-    constructor(authModule) {
-        super(authModule);
-    }
+class RaceApi extends ApiModule {
+	constructor(authModule, elevationModule) {
+		super(authModule);
+		this.elevationModule = elevationModule;
+	}
 
-    async getRosters(year, options = {}) {
-        const { user, race, sort = 'createdAt', order = 'desc' } = options;
-        const params = new URLSearchParams();
-        if (user) params.append('user', user);
-        if (race) params.append('race', race);
-        if (sort) params.append('sort', sort);
-        if (order) params.append('order', order);
-        
-        const queryString = params.toString();
-        const endpoint = `/api/roster/${year}${queryString ? `?${queryString}` : ''}`;
-        return this.get(endpoint);
-    }
+	async getRaces(year, options = {}) {
+		const { status, sort = "roundNumber", order = "asc" } = options;
+		const params = new URLSearchParams();
+		if (status) params.append("status", status);
+		if (sort) params.append("sort", sort);
+		if (order) params.append("order", order);
 
-    async getRosterById(year, rosterId) {
-        return this.get(`/api/roster/${year}/${rosterId}`);
-    }
+		const queryString = params.toString();
+		const endpoint = `/api/race/${year}${
+			queryString ? `?${queryString}` : ""
+		}`;
+		return this.get(endpoint);
+	}
 
-    async createRoster(year, rosterData) {
-        return this.post(`/api/roster/${year}`, rosterData);
-    }
+	async getRaceById(year, raceId) {
+		return this.get(`/api/race/${year}/${raceId}`);
+	}
 
-    async updateRoster(year, rosterId, rosterData) {
-        return this.put(`/api/roster/${year}/${rosterId}`, rosterData);
-    }
+	async createRace(year, raceData, elevatedToken) {
+		return this.post(`/api/race/${year}`, raceData, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
 
-    async deleteRoster(year, rosterId) {
-        return this.delete(`/api/roster/${year}/${rosterId}`);
-    }
+	async updateRace(year, raceId, raceData, elevatedToken) {
+		return this.put(`/api/race/${year}/${raceId}`, raceData, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
 
-    async getRosterStats(year) {
-        return this.get(`/api/roster/${year}/stats`);
-    }
+	async deleteRace(year, raceId, elevatedToken) {
+		return this.delete(`/api/race/${year}/${raceId}`, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
 
-    async getUserRosters(year, userId) {
-        return this.get(`/api/roster/${year}/user/${userId}`);
-    }
+	async getRaceStats(year) {
+		return this.get(`/api/race/${year}/stats`);
+	}
 }
 
 class YearApi extends ApiModule {
-    constructor(authModule, elevationModule) {
-        super(authModule);
-        this.elevationModule = elevationModule;
-    }
+	constructor(authModule, elevationModule) {
+		super(authModule);
+		this.elevationModule = elevationModule;
+	}
 
-    async getAvailableYears() {
-        return this.get('/api/year/');
-    }
+	async getAvailableYears() {
+		return this.get("/api/year/");
+	}
 
-    async getAllYearStats() {
-        return this.get('/api/year/stats');
-    }
+	async getAllYearStats() {
+		return this.get("/api/year/stats");
+	}
 
-    async getYearStats(year) {
-        return this.get(`/api/year/${year}/stats`);
-    }
+	async getYearStats(year) {
+		return this.get(`/api/year/${year}/stats`);
+	}
 
-    async initializeYear(year, elevatedToken) {
-        return this.post(`/api/year/${year}/initialize`, {}, {
-            includeAuth: false,
-            headers: { 'Authorization': `Bearer ${elevatedToken}` }
-        });
-    }
+	async initializeYear(year, elevatedToken) {
+		return this.post(
+			`/api/year/${year}/initialize`,
+			{},
+			{
+				includeAuth: false,
+				headers: { Authorization: `Bearer ${elevatedToken}` },
+			}
+		);
+	}
 
-    async copyYearData(sourceYear, targetYear, collections, elevatedToken) {
-        const data = { sourceYear, targetYear, collections };
-        return this.post('/api/year/copy', data, {
-            includeAuth: false,
-            headers: { 'Authorization': `Bearer ${elevatedToken}` }
-        });
-    }
+	async copyYearData(sourceYear, targetYear, collections, elevatedToken) {
+		const data = { sourceYear, targetYear, collections };
+		return this.post("/api/year/copy", data, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+		});
+	}
 
-    async compareYears(year1, year2) {
-        return this.get(`/api/year/${year1}/compare/${year2}`);
-    }
+	async compareYears(year1, year2) {
+		return this.get(`/api/year/${year1}/compare/${year2}`);
+	}
 
-    async deleteYear(year, elevatedToken) {
-        const data = { confirmDelete: 'DELETE_ALL_DATA' };
-        return this.delete(`/api/year/${year}`, {
-            includeAuth: false,
-            headers: { 'Authorization': `Bearer ${elevatedToken}` },
-            data
-        });
-    }
+	async deleteYear(year, elevatedToken) {
+		const data = { confirmDelete: "DELETE_ALL_DATA" };
+		return this.delete(`/api/year/${year}`, {
+			includeAuth: false,
+			headers: { Authorization: `Bearer ${elevatedToken}` },
+			data,
+		});
+	}
 }
 
 function createApiModules(authModule, elevationModule) {
-    return {
-        auth: new AuthApi(authModule),
-        users: new UserApi(authModule, elevationModule),
-        drivers: new DriverApi(authModule, elevationModule),
-        rosters: new RosterApi(authModule),
-        years: new YearApi(authModule, elevationModule)
-    };
+	return {
+		auth: new AuthApi(authModule),
+		users: new UserApi(authModule, elevationModule),
+		drivers: new DriverApi(authModule, elevationModule),
+		rosters: new RosterApi(authModule),
+		races: new RaceApi(authModule, elevationModule),
+		years: new YearApi(authModule, elevationModule),
+	};
 }
-
 class YearManager {
-    constructor(apiModules) {
-        this.api = apiModules;
-        this.currentYear = new Date().getFullYear().toString();
-        this.availableYears = [];
-    }
+	constructor(apiModules) {
+		this.api = apiModules;
+		this.currentYear = new Date().getFullYear().toString();
+		this.availableYears = [];
+	}
 
-    async initialize() {
-        await this.loadAvailableYears();
-        return this;
-    }
+	async initialize() {
+		await this.loadAvailableYears();
+		return this;
+	}
 
-    async loadAvailableYears() {
-        try {
-            const result = await this.api.years.getAvailableYears();
-            if (result.success) {
-                this.availableYears = result.data.years || [];
-            }
-        } catch (error) {
-            console.error('Failed to load available years:', error);
-        }
-    }
+	async loadAvailableYears() {
+		try {
+			const result = await this.api.years.getAvailableYears();
+			if (result.success) {
+				this.availableYears = result.data.years || [];
+			}
+		} catch (error) {
+			console.error("Failed to load available years:", error);
+		}
+	}
 
-    getCurrentYear() {
-        return this.currentYear;
-    }
+	getCurrentYear() {
+		return this.currentYear;
+	}
 
-    setCurrentYear(year) {
-        this.currentYear = year;
-        Object.values(this.api).forEach(apiModule => {
-            if (apiModule.setCurrentYear) {
-                apiModule.setCurrentYear(year);
-            }
-        });
-    }
+	setCurrentYear(year) {
+		this.currentYear = year;
+		Object.values(this.api).forEach((apiModule) => {
+			if (apiModule.setCurrentYear) {
+				apiModule.setCurrentYear(year);
+			}
+		});
+	}
 
-    getAvailableYears() {
-        return [...this.availableYears];
-    }
+	getAvailableYears() {
+		return [...this.availableYears];
+	}
 
-    isValidYear(year) {
-        return /^\d{4}$/.test(year) && parseInt(year) >= 2020 && parseInt(year) <= 2030;
-    }
+	isValidYear(year) {
+		return (
+			/^\d{4}$/.test(year) &&
+			parseInt(year) >= 2020 &&
+			parseInt(year) <= 2030
+		);
+	}
 
-    async switchToYear(year) {
-        if (!this.isValidYear(year)) {
-            throw new Error('Invalid year format');
-        }
-        
-        this.setCurrentYear(year);
-        return year;
-    }
+	async switchToYear(year) {
+		if (!this.isValidYear(year)) {
+			throw new Error("Invalid year format");
+		}
 
-    async createNewYear(year, sourceYear = null, collections = ['drivers', 'users']) {
-        if (!this.isValidYear(year)) {
-            throw new Error('Invalid year format');
-        }
+		this.setCurrentYear(year);
+		return year;
+	}
 
-        const initResult = await this.api.years.initializeYear(year, elevatedToken);
-        if (!initResult.success) {
-            throw new Error(initResult.error);
-        }
+	async createNewYear(
+		year,
+		sourceYear = null,
+		collections = ["drivers", "users"]
+	) {
+		if (!this.isValidYear(year)) {
+			throw new Error("Invalid year format");
+		}
 
-        if (sourceYear && this.isValidYear(sourceYear)) {
-            const copyResult = await this.api.years.copyYearData(
-                sourceYear, 
-                year, 
-                collections, 
-                elevatedToken
-            );
-            if (!copyResult.success) {
-                throw new Error(copyResult.error);
-            }
-        }
+		const initResult = await this.api.years.initializeYear(
+			year,
+			elevatedToken
+		);
+		if (!initResult.success) {
+			throw new Error(initResult.error);
+		}
 
-        await this.loadAvailableYears();
-        return year;
-    }
+		if (sourceYear && this.isValidYear(sourceYear)) {
+			const copyResult = await this.api.years.copyYearData(
+				sourceYear,
+				year,
+				collections,
+				elevatedToken
+			);
+			if (!copyResult.success) {
+				throw new Error(copyResult.error);
+			}
+		}
 
-    formatYearForDisplay(year) {
-        return `${year} Season`;
-    }
+		await this.loadAvailableYears();
+		return year;
+	}
 
-    getYearsList() {
-        return this.availableYears.map(yearData => ({
-            year: yearData.year,
-            display: this.formatYearForDisplay(yearData.year),
-            hasData: yearData.driverCount > 0 || yearData.userCount > 0
-        }));
-    }
+	formatYearForDisplay(year) {
+		return `${year} Season`;
+	}
+
+	getYearsList() {
+		return this.availableYears.map((yearData) => ({
+			year: yearData.year,
+			display: this.formatYearForDisplay(yearData.year),
+			hasData: yearData.driverCount > 0 || yearData.userCount > 0,
+		}));
+	}
 }
 
-export { 
-    ApiModule, 
-    AuthApi, 
-    UserApi, 
-    DriverApi, 
-    RosterApi,  
-    YearApi, 
-    YearManager,
-    createApiModules 
+export {
+	ApiModule,
+	AuthApi,
+	UserApi,
+	DriverApi,
+	RosterApi,
+	RaceApi,
+	YearApi,
+	YearManager,
+	createApiModules,
 };

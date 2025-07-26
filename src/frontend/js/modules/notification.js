@@ -1,163 +1,177 @@
 class NotificationModule {
-    constructor() {
-        this.notifications = new Set();
-        this.defaultDuration = 5000; // 5 seconds
-    }
+	constructor() {
+		this.notifications = new Set();
+		this.defaultDuration = 5000;
+	}
 
-    createNotification(message, type = 'info', options = {}) {
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.textContent = message;
+	createNotification(message, type = "info", options = {}) {
+		const notification = document.createElement("div");
+		notification.className = `notification notification-${type}`;
+		notification.textContent = message;
 
-        if (options.className) {
-            notification.classList.add(options.className);
-        }
+		if (options.className) {
+			notification.classList.add(options.className);
+		}
 
-        if (options.persistent) {
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'notification-close';
-            closeBtn.innerHTML = '&times;';
-            closeBtn.addEventListener('click', () => this.remove(notification));
-            notification.appendChild(closeBtn);
-        }
+		if (options.persistent) {
+			const closeBtn = document.createElement("button");
+			closeBtn.className = "notification-close";
+			closeBtn.innerHTML = "&times;";
+			closeBtn.addEventListener("click", () => this.remove(notification));
+			notification.appendChild(closeBtn);
+		}
 
-        return notification;
-    }
+		return notification;
+	}
 
-    show(message, type = 'info', options = {}) {
-        if (options.clearExisting) {
-            this.clearByType(type);
-        }
+	show(message, type = "info", options = {}) {
+		if (options.clearExisting) {
+			this.clearByType(type);
+		}
 
-        if (options.clearAll) {
-            this.clearAll();
-        }
+		if (options.clearAll) {
+			this.clearAll();
+		}
 
-        const notification = this.createNotification(message, type, options);
-        this.notifications.add(notification);
+		const notification = this.createNotification(message, type, options);
+		this.notifications.add(notification);
 
-        document.body.appendChild(notification);
+		document.body.appendChild(notification);
 
-        if (!options.persistent) {
-            const duration = options.duration || this.defaultDuration;
-            setTimeout(() => {
-                this.remove(notification);
-            }, duration);
-        }
+		if (!options.persistent) {
+			const duration = options.duration || this.defaultDuration;
+			setTimeout(() => {
+				this.remove(notification);
+			}, duration);
+		}
 
-        return notification;
-    }
+		return notification;
+	}
 
-    success(message, options = {}) {
-        return this.show(message, 'success', options);
-    }
+	success(message, options = {}) {
+		return this.show(message, "success", options);
+	}
 
-    error(message, options = {}) {
-        return this.show(message, 'error', options);
-    }
+	error(message, options = {}) {
+		return this.show(message, "error", options);
+	}
 
-    warning(message, options = {}) {
-        return this.show(message, 'warning', options);
-    }
+	warning(message, options = {}) {
+		return this.show(message, "warning", options);
+	}
 
-    info(message, options = {}) {
-        return this.show(message, 'info', options);
-    }
+	info(message, options = {}) {
+		return this.show(message, "info", options);
+	}
 
-    remove(notification) {
-        if (notification && notification.parentNode) {
-            // Fade out animation
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateX(100%)';
-            
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                    this.notifications.delete(notification);
-                }
-            }, 300);
-        }
-    }
+	remove(notification) {
+		if (notification && notification.parentNode) {
+			notification.style.opacity = "0";
+			notification.style.transform = "translateX(100%)";
 
-    clearByType(type) {
-        const notifications = document.querySelectorAll(`.notification-${type}`);
-        notifications.forEach(notification => {
-            this.remove(notification);
-        });
-    }
+			setTimeout(() => {
+				if (notification.parentNode) {
+					notification.parentNode.removeChild(notification);
+					this.notifications.delete(notification);
+				}
+			}, 300);
+		}
+	}
 
-    clearAll() {
-        const notifications = document.querySelectorAll('.notification');
-        notifications.forEach(notification => {
-            this.remove(notification);
-        });
-        this.notifications.clear();
-    }
+	clearByType(type) {
+		const notifications = document.querySelectorAll(
+			`.notification-${type}`
+		);
+		notifications.forEach((notification) => {
+			this.remove(notification);
+		});
+	}
 
-    showLoading(message = 'Loading...', options = {}) {
-        const loadingOptions = {
-            ...options,
-            persistent: true,
-            className: 'notification-loading'
-        };
+	clearAll() {
+		const notifications = document.querySelectorAll(".notification");
+		notifications.forEach((notification) => {
+			this.remove(notification);
+		});
+		this.notifications.clear();
+	}
 
-        const notification = this.show(message, 'info', loadingOptions);
-        
-        const spinner = document.createElement('div');
-        spinner.className = 'notification-spinner';
-        notification.appendChild(spinner);
+	showLoading(message = "Loading...", options = {}) {
+		const loadingOptions = {
+			...options,
+			persistent: true,
+			className: "notification-loading",
+		};
 
-        return notification;
-    }
+		const notification = this.show(message, "info", loadingOptions);
 
-    hideLoading() {
-        const loadingNotifications = document.querySelectorAll('.notification-loading');
-        loadingNotifications.forEach(notification => {
-            this.remove(notification);
-        });
-    }
+		const spinner = document.createElement("div");
+		spinner.className = "notification-spinner";
+		notification.appendChild(spinner);
 
-    showValidationErrors(errors, options = {}) {
-        if (Array.isArray(errors)) {
-            errors.forEach(error => {
-                this.error(error, { ...options, duration: 7000 });
-            });
-        } else {
-            this.error(errors, { ...options, duration: 7000 });
-        }
-    }
+		return notification;
+	}
 
-    showApiError(error, options = {}) {
-        const message = error?.message || error || 'An unexpected error occurred';
-        return this.error(message, options);
-    }
+	hideLoading() {
+		const loadingNotifications = document.querySelectorAll(
+			".notification-loading"
+		);
+		loadingNotifications.forEach((notification) => {
+			this.remove(notification);
+		});
+	}
 
-    showNetworkError(options = {}) {
-        return this.error('Network error. Please check your connection and try again.', options);
-    }
+	showValidationErrors(errors, options = {}) {
+		if (Array.isArray(errors)) {
+			errors.forEach((error) => {
+				this.error(error, { ...options, duration: 7000 });
+			});
+		} else {
+			this.error(errors, { ...options, duration: 7000 });
+		}
+	}
 
-    showUnauthorizedError(options = {}) {
-        return this.error('You are not authorized to perform this action.', options);
-    }
+	showApiError(error, options = {}) {
+		const message =
+			error?.message || error || "An unexpected error occurred";
+		return this.error(message, options);
+	}
 
-    setDefaultDuration(duration) {
-        this.defaultDuration = duration;
-    }
+	showNetworkError(options = {}) {
+		return this.error(
+			"Network error. Please check your connection and try again.",
+			options
+		);
+	}
 
-    getCount() {
-        return this.notifications.size;
-    }
+	showUnauthorizedError(options = {}) {
+		return this.error(
+			"You are not authorized to perform this action.",
+			options
+		);
+	}
 
-    hasNotifications() {
-        return this.notifications.size > 0;
-    }
+	setDefaultDuration(duration) {
+		this.defaultDuration = duration;
+	}
+
+	getCount() {
+		return this.notifications.size;
+	}
+
+	hasNotifications() {
+		return this.notifications.size > 0;
+	}
 }
 
 const notificationModule = new NotificationModule();
 
-window.showSuccess = (message, options) => notificationModule.success(message, options);
-window.showError = (message, options) => notificationModule.error(message, options);
-window.showInfo = (message, options) => notificationModule.info(message, options);
-window.showWarning = (message, options) => notificationModule.warning(message, options);
+window.showSuccess = (message, options) =>
+	notificationModule.success(message, options);
+window.showError = (message, options) =>
+	notificationModule.error(message, options);
+window.showInfo = (message, options) =>
+	notificationModule.info(message, options);
+window.showWarning = (message, options) =>
+	notificationModule.warning(message, options);
 
 export default notificationModule;
