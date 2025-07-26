@@ -1,11 +1,15 @@
 class ApiModule {
 	constructor(authModule) {
 		this.authModule = authModule;
+
+		// More robust localhost detection
 		if (
 			window.location.hostname === "localhost" ||
-			window.location.hostname === "127.0.0.1"
+			window.location.hostname === "127.0.0.1" ||
+			window.location.hostname === "0.0.0.0"
 		) {
-			this.baseURL = "http://localhost:5000";
+			// Force HTTP for localhost development
+			this.baseURL = `http://${window.location.host}`;
 		} else if (window.location.protocol === "https:") {
 			this.baseURL = window.location.origin;
 		} else {
@@ -13,9 +17,7 @@ class ApiModule {
 		}
 
 		this.currentYear = new Date().getFullYear().toString();
-
 		console.log("API Base URL set to:", this.baseURL); // Debug log
-		this.currentYear = new Date().getFullYear().toString();
 	}
 
 	setCurrentYear(year) {

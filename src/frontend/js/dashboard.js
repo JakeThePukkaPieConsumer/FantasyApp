@@ -1,6 +1,6 @@
 import authModule from "./modules/auth.js";
 import { createApiModules } from "./modules/api.js";
-import { loadRaceInformation } from "./modules/raceUtils.js";
+import { loadRaceInformation } from "./modules/driverSelectionManager.js";
 import notificationModule from "./modules/notification.js";
 
 class Dashboard {
