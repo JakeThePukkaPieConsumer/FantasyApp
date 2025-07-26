@@ -1,13 +1,5 @@
 const mongoose = require("mongoose");
 
-/**
- * Schema for a single event within a race.
- * @typedef {Object} Event
- * @property {string} title - Title of the event.
- * @property {Date} starttime - Date and time when the event starts
- * @property {Date} endtime - Date and time when the event ends
- * @property {string} [status="scheduled"] - Current status of the event.
- */
 const eventSchema = new mongoose.Schema({
 	title: { type: String, required: true },
 	starttime: { type: Date, required: true },
@@ -15,16 +7,32 @@ const eventSchema = new mongoose.Schema({
 	status: { type: String, default: "scheduled" },
 });
 
-/**
- * Schema for a race with multiple events.
- * @typedef {Object} RaceWithEvents
- * @property {number} roundNumber - Round number of the race.
- * @property {string} name - Name of the race.
- * @property {string} [location] - Location of the race.
- * @property {Event[]} events - Array of events within the race.
- * @property {Date} submissionDeadline - Deadline for roster submissions.
- * @property {boolean} [isLocked=false] - Indicates if submissions are locked.
- */
+const driverUpdateSchema = new mongoose.Schema(
+	{
+		driverId: { type: mongoose.Schema.Types.ObjectId, required: true },
+		driverName: { type: String, required: true },
+		previousValue: { type: Number, required: true },
+		pointsGained: { type: Number, required: true, default: 0 },
+		expectedPoints: { type: Number, required: true },
+		valueChange: { type: Number, required: true },
+		newValue: { type: Number, required: true },
+		percentageChange: { type: Number, required: true, default: 0 },
+	},
+	{ _id: false }
+);
+
+const ppmDataSchema = new mongoose.Schema(
+	{
+		ppm: { type: Number, required: true },
+		venuePoints: { type: Number, required: true, default: 930 },
+		totalMeetingPoints: { type: Number, required: true },
+		totalDriverValue: { type: Number, required: true },
+		processedAt: { type: Date, required: true, default: Date.now },
+		driverUpdates: [driverUpdateSchema],
+	},
+	{ _id: false }
+);
+
 const raceSchemaWithEvents = new mongoose.Schema({
 	roundNumber: { type: Number, required: true },
 	name: { type: String, required: true },
@@ -32,6 +40,11 @@ const raceSchemaWithEvents = new mongoose.Schema({
 	events: [eventSchema],
 	submissionDeadline: { type: Date, required: true },
 	isLocked: { type: Boolean, default: false },
+	isProcessed: { type: Boolean, default: false },
+	ppmData: ppmDataSchema,
 });
+
+raceSchemaWithEvents.index({ isProcessed: 1, roundNumber: 1 });
+raceSchemaWithEvents.index({ "ppmData.processedAt": 1 });
 
 module.exports = raceSchemaWithEvents;

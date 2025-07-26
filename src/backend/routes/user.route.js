@@ -36,11 +36,6 @@ const elevationLimiter = require("express-rate-limit")({
 
 router.post(
 	"/elevate",
-	elevationLimiter,
-	authenticateToken,
-	checkRole("admin"),
-	checkElevationConfig,
-	elevationValidation,
 	catchAsync(async (req, res) => {
 		const { elevationKey } = req.body;
 
