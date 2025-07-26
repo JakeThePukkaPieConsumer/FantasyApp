@@ -13,6 +13,7 @@ const driverRoutes = require("./routes/driver.route");
 const rosterRoutes = require("./routes/roster.route");
 const yearRoutes = require("./routes/year.route");
 const raceRoutes = require("./routes/race.route");
+const ppmRoutes = require("./routes/ppm.route");
 const { initializeYear } = require("./utils/manageYears");
 
 const app = express();
@@ -74,6 +75,7 @@ app.use("/api/roster", rosterRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/years", yearRoutes);
 app.use("/api/races", raceRoutes);
+app.use("/api/ppm", ppmRoutes);
 
 app.use((req, res, next) => {
 	if (req.path.startsWith("/api/")) {

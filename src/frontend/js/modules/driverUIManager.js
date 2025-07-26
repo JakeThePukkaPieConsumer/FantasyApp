@@ -38,7 +38,6 @@ class DriverUIManager {
 			}
 		});
 
-		// Filter buttons
 		document.querySelectorAll(".filter-btn").forEach((btn) => {
 			btn.addEventListener("click", (e) => {
 				this.setActiveFilter(e.target);
@@ -46,8 +45,7 @@ class DriverUIManager {
 				this.renderDrivers();
 			});
 		});
-
-		// Search input
+		
 		const searchInput = document.getElementById("search-drivers");
 		if (searchInput) {
 			searchInput.addEventListener("input", (e) => {
@@ -56,7 +54,6 @@ class DriverUIManager {
 			});
 		}
 
-		// Sort button
 		const sortBtn = document.getElementById("sort-by-value");
 		if (sortBtn) {
 			sortBtn.addEventListener("click", () => {
@@ -68,17 +65,14 @@ class DriverUIManager {
 			});
 		}
 
-		// Keyboard shortcuts
 		document.addEventListener("keydown", (e) => {
 			this.handleKeyboardShortcuts(e);
 		});
 
-		// Visibility change
 		document.addEventListener("visibilitychange", () => {
 			this.handleVisibilityChange();
 		});
 
-		// Network status
 		window.addEventListener("online", () => {
 			this.notificationModule.info(
 				"Connection restored. Refreshing data..."

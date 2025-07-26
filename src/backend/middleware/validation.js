@@ -3,12 +3,6 @@ const { AppError } = require("./errorHandler");
 const mongoose = require("mongoose");
 const { validateYear } = require("../models/modelPerYear");
 
-/**
- * @brief Middleware to handle validation errors from express-validator.
- * @param {object} req - Express request object.
- * @param {object} res - Express response object.
- * @param {Function} next - Next middleware function.
- */
 const handleValidationErrors = (req, res, next) => {
 	const errors = validationResult(req);
 	if (!errors.isEmpty()) {
@@ -21,10 +15,25 @@ const handleValidationErrors = (req, res, next) => {
 	next();
 };
 
-/**
- * @brief Validation rules for elevation key.
- * Checks if 'elevationKey' is not empty.
- */
+const pinValidation = body("pin")
+	.notEmpty()
+	.withMessage("PIN is required")
+	.isLength({ min: 4, max: 4 })
+	.withMessage("PIN must be exactly 4 digits")
+	.isInt()
+	.withMessage("PIN must contain only numbers");
+
+const validateYearValue = (value) => {
+	if (!validateYear(value)) {
+		throw new Error(
+			`Invalid year: ${value}. Must be between 2000 and ${
+				new Date().getFullYear() + 5
+			}`
+		);
+	}
+	return true;
+};
+
 const elevationValidation = [
 	body("elevationKey")
 		.notEmpty()
@@ -34,10 +43,6 @@ const elevationValidation = [
 	handleValidationErrors,
 ];
 
-/**
- * @brief Validation rules for login.
- * Validates username, PIN (exact 4 digits), and optional year.
- */
 const loginValidation = [
 	body("username")
 		.trim()
@@ -45,34 +50,15 @@ const loginValidation = [
 		.withMessage("Username is required")
 		.isLength({ min: 1, max: 50 })
 		.withMessage("Username must be between 1 and 50 characters"),
-	body("pin")
-		.notEmpty()
-		.withMessage("PIN is required")
-		.isLength({ min: 4, max: 4 })
-		.withMessage("PIN must be exactly 4 numbers")
-		.isNumeric()
-		.withMessage("PIN must contain only numbers"),
+	pinValidation,
 	body("year")
 		.optional()
 		.matches(/^\d{4}$/)
 		.withMessage("Year must be a 4-digit number")
-		.custom((value) => {
-			if (value && !validateYear(value)) {
-				throw new Error(
-					`Invalid year: ${value}. Must be between 2000 and ${
-						new Date().getFullYear() + 5
-					}`
-				);
-			}
-			return true;
-		}),
+		.custom(validateYearValue),
 	handleValidationErrors,
 ];
 
-/**
- * @brief Validation rules for creating a new user.
- * Validates username, pin, role, and budget.
- */
 const createUserValidation = [
 	body("username")
 		.trim()
@@ -84,30 +70,18 @@ const createUserValidation = [
 		.withMessage(
 			"Username can only contain letters, numbers, underscores, and hyphens"
 		),
-	body("pin")
-		.notEmpty()
-		.withMessage("PIN is required")
-		.isLength({ min: 4, max: 4 })
-		.withMessage("PIN must be exactly 4 digits")
-		.isNumeric()
-		.withMessage("PIN must contain only numbers"),
+	pinValidation,
 	body("role")
 		.optional()
 		.isIn(["admin", "user"])
 		.withMessage('Role must be either "admin" or "user"'),
 	body("budget")
 		.optional()
-		.isNumeric()
-		.withMessage("Budget must be a number")
 		.isFloat({ min: 0 })
-		.withMessage("Budget cannot be negative"),
+		.withMessage("Budget must be a non-negative number"),
 	handleValidationErrors,
 ];
 
-/**
- * @brief Validation rules for updating a user.
- * Optional checks on username, pin, role, and budget.
- */
 const updateUserValidation = [
 	body("username")
 		.optional()
@@ -122,7 +96,7 @@ const updateUserValidation = [
 		.optional()
 		.isLength({ min: 4, max: 4 })
 		.withMessage("PIN must be exactly 4 digits")
-		.isNumeric()
+		.isInt()
 		.withMessage("PIN must contain only numbers"),
 	body("role")
 		.optional()
@@ -130,17 +104,11 @@ const updateUserValidation = [
 		.withMessage('Role must be either "admin" or "user"'),
 	body("budget")
 		.optional()
-		.isNumeric()
-		.withMessage("Budget must be a number")
 		.isFloat({ min: 0 })
-		.withMessage("Budget cannot be negative"),
+		.withMessage("Budget must be a non-negative number"),
 	handleValidationErrors,
 ];
 
-/**
- * @brief Validation rules for creating a driver.
- * Checks name, value, and categories.
- */
 const createDriverValidation = [
 	body("name")
 		.trim()
@@ -152,7 +120,7 @@ const createDriverValidation = [
 		.notEmpty()
 		.withMessage("Value is required")
 		.isNumeric()
-		.withMessage("Value must contain only numbers"),
+		.withMessage("Value must be a number"),
 	body("categories")
 		.isArray({ min: 1, max: 2 })
 		.withMessage("Categories must be an array with 1 or 2 items"),
@@ -162,10 +130,6 @@ const createDriverValidation = [
 	handleValidationErrors,
 ];
 
-/**
- * @brief Validation rules for updating a driver.
- * Optional fields name, value, and categories.
- */
 const updateDriverValidation = [
 	body("name")
 		.optional()
@@ -189,22 +153,18 @@ const updateDriverValidation = [
 	handleValidationErrors,
 ];
 
-/**
- * @brief Validation rules for creating a roster.
- * Checks user, drivers, budgetUsed, pointsEarned, and race fields.
- */
 const createRosterValidation = [
 	body("user")
 		.notEmpty()
 		.withMessage("User ID is required")
 		.custom((value) => mongoose.Types.ObjectId.isValid(value))
-		.withMessage("User Id must be a valid MongoDB ObjectId"),
+		.withMessage("User ID must be a valid MongoDB ObjectId"),
 	body("drivers")
 		.isArray({ min: 1 })
 		.withMessage("Drivers must be a non-empty array"),
 	body("drivers.*")
 		.custom((value) => mongoose.Types.ObjectId.isValid(value))
-		.withMessage("Each driver ID must be a valid mongoDB ObjectId"),
+		.withMessage("Each driver ID must be a valid MongoDB ObjectId"),
 	body("budgetUsed")
 		.isFloat({ min: 0 })
 		.withMessage("Budget used must be a number greater than or equal to 0"),
@@ -219,15 +179,11 @@ const createRosterValidation = [
 	handleValidationErrors,
 ];
 
-/**
- * @brief Validation rules for updating a roster.
- * Optional fields: user, drivers, budgetUsed, pointsEarned, race.
- */
 const updateRosterValidation = [
 	body("user")
 		.optional()
 		.custom((value) => mongoose.Types.ObjectId.isValid(value))
-		.withMessage("User Id must be a valid mongoDB ObjectId"),
+		.withMessage("User ID must be a valid MongoDB ObjectId"),
 	body("drivers")
 		.optional()
 		.isArray({ min: 1 })
@@ -243,15 +199,41 @@ const updateRosterValidation = [
 	body("race")
 		.optional()
 		.custom((value) => mongoose.Types.ObjectId.isValid(value))
-		.withMessage("Race ID must be a valid mongoDB ObjectId"),
+		.withMessage("Race ID must be a valid MongoDB ObjectId"),
 	handleValidationErrors,
 ];
 
-/**
- * @brief Middleware to validate a MongoDB ObjectId in route parameters.
- * @param {string} [paramName='id'] - Name of the param to validate.
- * @returns {Function} Middleware function.
- */
+const raceValidation = [
+	body("raceId")
+		.notEmpty()
+		.withMessage("Race ID is required")
+		.isMongoId()
+		.withMessage("Race ID must be a valid MongoDB ObjectId"),
+	body("totalMeetingPoints")
+		.isNumeric()
+		.withMessage("Total meeting points must be a number")
+		.isFloat({ min: 0 })
+		.withMessage("Total meeting points must be non-negative"),
+	body("driverResults")
+		.isArray({ min: 1 })
+		.withMessage("Driver results must be a non-empty array"),
+	body("driverResults.*.driverId")
+		.isMongoId()
+		.withMessage("Each driver ID must be a valid MongoDB ObjectId"),
+	body("driverResults.*.pointsGained")
+		.isNumeric()
+		.withMessage("Points gained must be a number")
+		.isFloat({ min: 0 })
+		.withMessage("Points gained must be non-negative"),
+	body("venuePoints")
+		.optional()
+		.isNumeric()
+		.withMessage("Venue points must be a number")
+		.isFloat({ min: 0 })
+		.withMessage("Venue points must be non-negative"),
+	handleValidationErrors,
+];
+
 const mongoIdValidation = (paramName = "id") => {
 	return (req, res, next) => {
 		const id = req.params[paramName];
@@ -268,49 +250,23 @@ const mongoIdValidation = (paramName = "id") => {
 	};
 };
 
-/**
- * @brief Validation rules for a 4-digit year param.
- */
 const yearValidation = [
 	param("year")
 		.matches(/^\d{4}$/)
 		.withMessage("Year must be a 4-digit number")
-		.custom((value) => {
-			if (!validateYear(value)) {
-				throw new Error(
-					`Invalid year: ${value}. Must be between 2000 and ${
-						new Date().getFullYear() + 5
-					}`
-				);
-			}
-			return true;
-		}),
+		.custom(validateYearValue),
 	handleValidationErrors,
 ];
 
-/**
- * @brief Validation rules for copying data between years.
- * Validates sourceYear, targetYear, and optional collections array.
- */
 const copyYearValidation = [
 	body("sourceYear")
 		.matches(/^\d{4}$/)
 		.withMessage("Source year must be a 4-digit number")
-		.custom((value) => {
-			if (!validateYear(value)) {
-				throw new Error(`Invalid source year: ${value}`);
-			}
-			return true;
-		}),
+		.custom(validateYearValue),
 	body("targetYear")
 		.matches(/^\d{4}$/)
 		.withMessage("Target year must be a 4-digit number")
-		.custom((value) => {
-			if (!validateYear(value)) {
-				throw new Error(`Invalid target year: ${value}`);
-			}
-			return true;
-		}),
+		.custom(validateYearValue),
 	body("collections")
 		.optional()
 		.isArray()
@@ -332,28 +288,28 @@ const copyYearValidation = [
 	handleValidationErrors,
 ];
 
-/**
- * @brief Middleware to check if elevation system secret is configured.
- */
-const checkElevationConfig = (req, res, next) => {
+const requireElevationSecret = (req, res, next) => {
 	if (!process.env.ELEVATION_SECRET) {
-		return next(new AppError("Elevation system not configured", 500));
+		return next(new AppError("Elevation secret is not configured", 401));
 	}
 	next();
 };
 
 module.exports = {
+	handleValidationErrors,
+	pinValidation,
+	validateYearValue,
 	elevationValidation,
+	loginValidation,
 	createUserValidation,
 	updateUserValidation,
-	mongoIdValidation,
-	checkElevationConfig,
-	handleValidationErrors,
-	loginValidation,
 	createDriverValidation,
 	updateDriverValidation,
 	createRosterValidation,
 	updateRosterValidation,
+	raceValidation,
+	mongoIdValidation,
 	yearValidation,
 	copyYearValidation,
+	requireElevationSecret,
 };
