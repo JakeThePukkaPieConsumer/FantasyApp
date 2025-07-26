@@ -13,10 +13,12 @@ class DriverSelection {
 		this.notificationModule = notificationModule;
 		this.currentYear = this.authModule.getCurrentYear();
 
+		// Initialize managers
 		this.selectionManager = new DriverSelectionManager(
 			this.apiModules,
 			this.authModule,
-			this.notificationModule
+			this.notificationModule,
+			this.currentYear
 		);
 
 		this.filterManager = new DriverFilterManager();
@@ -42,12 +44,16 @@ class DriverSelection {
 		console.log("Initializing driver selection...");
 
 		try {
+			// Initialize the core selection manager
 			await this.selectionManager.init();
 
+			// Set up the filter manager with initial data
 			this.filterManager.setDrivers(this.selectionManager.getDrivers());
 
+			// Initialize the UI manager
 			this.uiManager.init();
 
+			// Show the interface
 			this.uiManager.showDriverSelection();
 
 			this.hasInitialized = true;
@@ -58,6 +64,7 @@ class DriverSelection {
 		}
 	}
 
+	// Public getters for external access
 	getCurrentUser() {
 		return this.selectionManager.getCurrentUser();
 	}
@@ -94,6 +101,7 @@ class DriverSelection {
 		this.hasInitialized = false;
 	}
 
+	// Debug methods for development
 	debug() {
 		if (
 			typeof process !== "undefined" &&

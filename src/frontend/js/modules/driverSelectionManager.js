@@ -1,13 +1,13 @@
-import authModule from "./modules/auth.js";
-import { createApiModules } from "./modules/api.js";
-import notificationModule from "./modules/notification.js";
+import authModule from "./auth.js";
+import { createApiModules } from "./api.js";
+import notificationModule from "./notification.js";
 import {
 	loadRaceInformation,
 	checkRaceSubmissionEligibility,
-} from "./modules/raceUtils.js";
-import DriverFilterManager from "./modules/driverFilterManager.js";
-import DriverUIManager from "./modules/driverUIManager.js";
-import DriverRosterManager from "./modules/driverRosterManager.js";
+} from "./raceUtils.js";
+import DriverFilterManager from "./driverFilterManager.js";
+import DriverUIManager from "./driverUIManager.js";
+import DriverRosterManager from "./driverRosterManager.js";
 
 class DriverSelectionManager {
 	constructor(apiModules, authModule, notificationModule, currentYear) {
@@ -22,13 +22,14 @@ class DriverSelectionManager {
 		this.raceStatus = null;
 		this.existingRoster = null;
 		this.currentUser = null;
-		this.maxDrivers = 5;
-		this.requiredCategories = ["M", "JS", "I"];
+		this.maxDrivers = 5; // Adjust as needed
+		this.requiredCategories = ["M", "JS", "I"]; // Adjust as needed
 	}
 
 	async init() {
 		console.log("Initializing DriverSelectionManager...");
 
+		// Check authentication first
 		const authResult = await this.authModule.checkAuthentication();
 		if (!authResult.success) {
 			throw new Error("Authentication required");
@@ -37,10 +38,13 @@ class DriverSelectionManager {
 		this.currentUser = authResult.user;
 		console.log("Authenticated user:", this.currentUser);
 
+		// Load race information
 		await this.loadRaceInformation();
 
+		// Load drivers
 		await this.loadDrivers();
 
+		// Load existing roster if we have a race
 		if (this.currentRace) {
 			await this.loadExistingRoster();
 		}
@@ -139,6 +143,7 @@ class DriverSelectionManager {
 			) {
 				this.existingRoster = result.data.rosters[0];
 
+				// Map roster drivers to full driver objects
 				if (this.existingRoster.drivers) {
 					this.selectedDrivers = this.existingRoster.drivers
 						.map((driverRef) => {
@@ -177,6 +182,7 @@ class DriverSelectionManager {
 		}
 	}
 
+	// Driver selection methods
 	selectDriver(driver) {
 		if (!this.canModifyRoster()) {
 			this.notificationModule.error(this.getRosterModificationError());
@@ -224,6 +230,7 @@ class DriverSelectionManager {
 		return true;
 	}
 
+	// Validation methods
 	validateTeamComposition() {
 		const errors = [];
 
@@ -282,6 +289,7 @@ class DriverSelectionManager {
 		return this.raceStatus.message || "Cannot modify roster";
 	}
 
+	// Getters
 	getCurrentUser() {
 		return this.currentUser;
 	}
@@ -321,6 +329,7 @@ class DriverSelectionManager {
 	}
 
 	cleanup() {
+		// Cleanup any resources if needed
 		console.log("DriverSelectionManager cleaned up");
 	}
 }
@@ -475,4 +484,4 @@ window.addEventListener("beforeunload", () => {
 	}
 });
 
-export default DriverSelection;
+export default DriverSelectionManager;

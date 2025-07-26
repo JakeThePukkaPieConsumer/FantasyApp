@@ -143,13 +143,22 @@ class AuthModule {
 			return { success: false, error: error.message };
 		}
 	}
-
+	
 	logout() {
 		console.log("Logging out user");
 		this.removeToken();
 		this.setCurrentUser(null);
 		this.setUserYear(null);
-		window.location.href = "/login.html";
+
+		// Use relative path to avoid protocol issues
+		if (
+			window.location.hostname === "localhost" ||
+			window.location.hostname === "127.0.0.1"
+		) {
+			window.location.href = `${window.location.protocol}//${window.location.host}/login.html`;
+		} else {
+			window.location.href = "/login.html";
+		}
 	}
 
 	async loadUsersForLogin(year = null) {

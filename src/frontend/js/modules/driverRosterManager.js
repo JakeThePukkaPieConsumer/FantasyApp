@@ -1,5 +1,3 @@
-// src/frontend/js/modules/driverRosterManager.js
-
 class DriverRosterManager {
 	constructor(apiModules, currentYear, notificationModule) {
 		this.apiModules = apiModules;
