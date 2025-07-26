@@ -8,6 +8,12 @@ const {
 	validateYear,
 } = require("../models/modelPerYear");
 const {
+	calculateDriversBudget,
+	validateUserBudget,
+	validateDriverCategories,
+	validateRosterData,
+} = require("../utils/calculateBudget");
+const {
 	createRosterValidation,
 	updateRosterValidation,
 	mongoIdValidation,
@@ -106,7 +112,6 @@ router.post(
 		} = req.body;
 
 		const Roster = getRosterModelForYear(year);
-		const Driver = getDriverModelForYear(year);
 		const User = getUserModelForYear(year);
 		const Race = getRaceModelForYear(year);
 
@@ -124,6 +129,10 @@ router.post(
 			throw new AppError("Cannot create roster for locked race", 400);
 		}
 
+		if (new Date() > new Date(race.submissionDeadline)) {
+			throw new AppError("Submission deadline has passed", 400);
+		}
+
 		const existingRoster = await Roster.findOne({
 			user: userId,
 			race: raceId,
@@ -132,40 +141,28 @@ router.post(
 			throw new AppError("User already has a roster for this race", 409);
 		}
 
-		const drivers = await Driver.find({ _id: { $in: driverIds } });
-		if (drivers.length !== driverIds.length) {
-			throw new AppError(
-				"One or more drivers not found for this year",
-				404
-			);
-		}
-
-		const totalDriverValue = drivers.reduce(
-			(sum, driver) => sum + driver.value,
-			0
+		const validation = await validateRosterData(
+			{
+				user: userId,
+				drivers: driverIds,
+				budgetUsed: budgetUsed || 0,
+			},
+			year
 		);
-		if (Math.abs(totalDriverValue - budgetUsed) > 0.01) {
+
+		if (!validation.isValid) {
 			throw new AppError(
-				`Budget mismatch: expected ${totalDriverValue}, got ${budgetUsed}`,
+				`Roster validation failed: ${validation.errors.join(", ")}`,
 				400
 			);
 		}
 
-		if (budgetUsed > user.budget) {
-			throw new AppError("Roster exceeds user budget", 400);
-		}
-
-		const categoryCount = {};
-		drivers.forEach((driver) => {
-			driver.categories.forEach((category) => {
-				categoryCount[category] = (categoryCount[category] || 0) + 1;
-			});
-		});
+		const finalBudgetUsed = validation.calculatedBudget;
 
 		const newRoster = new Roster({
 			user: userId,
 			drivers: driverIds,
-			budgetUsed,
+			budgetUsed: finalBudgetUsed,
 			pointsEarned,
 			race: raceId,
 		});
@@ -183,23 +180,26 @@ router.post(
 			message: "Roster created successfully",
 			year: parseInt(year),
 			roster: newRoster,
+			budgetInfo: {
+				calculatedBudget: validation.calculatedBudget,
+				userBudget: validation.budgetInfo.userBudget,
+				remainingBudget: validation.budgetInfo.remainingBudget,
+			},
 		});
 	})
 );
 
 router.put(
-	"/:year/:id",
+	"/:year/:userId/:rosterId",
 	authenticateToken,
 	yearValidation,
 	mongoIdValidation(),
 	updateRosterValidation,
 	catchAsync(async (req, res) => {
-		const { year, id } = req.params;
+		const { year, userId, rosterId } = req.params;
 		const updates = req.body;
 
 		const Roster = getRosterModelForYear(year);
-		const Driver = getDriverModelForYear(year);
-		const User = getUserModelForYear(year);
 
 		const allowedUpdates = ["drivers", "budgetUsed", "pointsEarned"];
 		const actualUpdates = Object.keys(updates).filter((key) =>
@@ -210,47 +210,48 @@ router.put(
 			throw new AppError("No valid fields provided for update", 400);
 		}
 
-		const roster = await Roster.findById(id).populate("race");
+		const roster = await Roster.findById(rosterId).populate("race");
 		if (!roster) {
 			throw new AppError("Roster not found", 404);
 		}
 
+		// Authorization check
 		if (
-			roster.user.toString() !== req.user._id.toString() &&
-			req.user.role !== "admin"
+			roster.user.toString() !== userId ||
+			(req.user._id.toString() !== userId && req.user.role !== "admin")
 		) {
 			throw new AppError("You can only update your own rosters", 403);
 		}
 
-		if (updates.drivers) {
-			const drivers = await Driver.find({
-				_id: { $in: updates.drivers },
-			});
-			if (drivers.length !== updates.drivers.length) {
-				throw new AppError(
-					"One or more drivers not found for this year",
-					404
-				);
-			}
+		if (roster.race.isLocked && req.user.role !== "admin") {
+			throw new AppError("Cannot update roster for locked race", 403);
+		}
 
-			const totalDriverValue = drivers.reduce(
-				(sum, driver) => sum + driver.value,
-				0
+		if (
+			new Date() > new Date(roster.race.submissionDeadline) &&
+			req.user.role !== "admin"
+		) {
+			throw new AppError("Submission deadline has passed", 400);
+		}
+
+		if (updates.drivers) {
+			const validation = await validateRosterData(
+				{
+					user: roster.user,
+					drivers: updates.drivers,
+					budgetUsed: updates.budgetUsed || 0,
+				},
+				year
 			);
 
-			if (!updates.budgetUsed) {
-				updates.budgetUsed = totalDriverValue;
-			} else if (Math.abs(totalDriverValue - updates.budgetUsed) > 0.01) {
+			if (!validation.isValid) {
 				throw new AppError(
-					`Budget mismatch: expected ${totalDriverValue}, got ${updates.budgetUsed}`,
+					`Roster validation failed: ${validation.errors.join(", ")}`,
 					400
 				);
 			}
 
-			const user = await User.findById(roster.user);
-			if (updates.budgetUsed > user.budget) {
-				throw new AppError("Updated roster exceeds user budget", 400);
-			}
+			updates.budgetUsed = validation.calculatedBudget;
 		}
 
 		const filteredUpdates = {};
@@ -259,7 +260,8 @@ router.put(
 		});
 
 		const updatedRoster = await Roster.findByIdAndUpdate(
-			id,
+			userId,
+			rosterId,
 			{ $set: filteredUpdates },
 			{ new: true, runValidators: true }
 		).populate([
@@ -436,6 +438,42 @@ router.get(
 			},
 			rosters,
 		});
+	})
+);
+
+router.post(
+	"/:year/validate",
+	authenticateToken,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const { user: userId, drivers: driverIds, budgetUsed } = req.body;
+
+		try {
+			const validation = await validateRosterData(
+				{
+					user: userId,
+					drivers: driverIds,
+					budgetUsed: budgetUsed || 0,
+				},
+				year
+			);
+
+			res.status(200).json({
+				success: true,
+				year: parseInt(year),
+				validation: {
+					isValid: validation.isValid,
+					errors: validation.errors,
+					budgetInfo: validation.budgetInfo,
+					categoryInfo: validation.categoryInfo,
+					calculatedBudget: validation.calculatedBudget,
+					providedBudget: validation.providedBudget,
+				},
+			});
+		} catch (error) {
+			throw new AppError(`Validation failed: ${error.message}`, 400);
+		}
 	})
 );
 
