@@ -1,7 +1,20 @@
 class ApiModule {
 	constructor(authModule) {
 		this.authModule = authModule;
-		this.baseURL = "";
+		if (
+			window.location.hostname === "localhost" ||
+			window.location.hostname === "127.0.0.1"
+		) {
+			this.baseURL = "http://localhost:5000";
+		} else if (window.location.protocol === "https:") {
+			this.baseURL = window.location.origin;
+		} else {
+			this.baseURL = `${window.location.protocol}//${window.location.host}`;
+		}
+
+		this.currentYear = new Date().getFullYear().toString();
+
+		console.log("API Base URL set to:", this.baseURL); // Debug log
 		this.currentYear = new Date().getFullYear().toString();
 	}
 
