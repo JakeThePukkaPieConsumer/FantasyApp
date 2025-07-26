@@ -12,6 +12,7 @@ const userRoutes = require("./routes/user.route");
 const driverRoutes = require("./routes/driver.route");
 const rosterRoutes = require("./routes/roster.route");
 const yearRoutes = require("./routes/year.route");
+const raceRoutes = require("./routes/race.route");
 
 const app = express();
 
@@ -68,8 +69,9 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/drivers", driverRoutes);
 app.use("/api/roster", rosterRoutes);
-app.use("/api/admin/users", userRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/years", yearRoutes);
+app.use("/api/races", raceRoutes);
 
 app.use((req, res, next) => {
 	if (req.path.startsWith("/api/")) {

@@ -91,77 +91,223 @@
 				</div>
 			</header>
 
-			<div
-				class="container"
-				style="padding: var(--spacing-8) var(--spacing-4)"
-			>
-				<div class="card" style="margin-bottom: var(--spacing-8)">
+			<div class="container" style="padding: var(--spacing-4)">
+				<div
+					class="card"
+					style="margin-bottom: var(--spacing-6)"
+					id="current-race-info"
+				>
 					<div class="card-header">
-						<h3>Your Team Summary</h3>
+						<h3>Current Race</h3>
 						<div class="flex items-center gap-2">
-							<svg
-								width="20"
-								height="20"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
+							<button
+								id="refresh-race-btn"
+								class="btn btn-sm btn-secondary"
 							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M17 20h5v-2a4 4 0 00-5-4M9 20H4v-2a4 4 0 015-4m4-4a4 4 0 110-8 4 4 0 010 8z"
-								></path>
-							</svg>
+								<svg
+									width="16"
+									height="16"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+									></path>
+								</svg>
+								Refresh
+							</button>
 						</div>
 					</div>
 					<div class="card-body">
-						<div class="stats-grid">
-							<div class="stat-card">
-								<h3>Drivers Selected</h3>
-								<p class="stat-value" id="selected-count">0</p>
+						<div class="race-info-grid">
+							<div class="race-detail-item">
+								<label>Race Name:</label>
+								<span id="current-race-name">Loading...</span>
 							</div>
-							<div class="stat-card">
-								<h3>Budget Remaining</h3>
-								<p class="stat-value">
-									£<span id="budget-remaining">0</span>
-								</p>
+							<div class="race-detail-item">
+								<label>Round:</label>
+								<span id="current-race-round">-</span>
 							</div>
-							<div class="stat-card">
-								<h3>Team Value</h3>
-								<p class="stat-value">
-									£<span id="team-value">0</span>
-								</p>
+							<div class="race-detail-item">
+								<label>Location:</label>
+								<span id="current-race-location">-</span>
+							</div>
+							<div class="race-detail-item">
+								<label>Submission Deadline:</label>
+								<span id="race-deadline">-</span>
+							</div>
+						</div>
+						<div class="race-status-container">
+							<div class="race-status-badge">
+								<span id="race-status" class="race-status open"
+									>Loading status...</span
+								>
 							</div>
 						</div>
 					</div>
 				</div>
+				<div>
+					<div
+						id="deadline-warning"
+						class="deadline-warning"
+						style="display: none"
+					>
+						<svg
+							width="20"
+							height="20"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+							></path>
+						</svg>
+						<span>Deadline information will appear here</span>
+					</div>
 
-				<div class="card" style="margin-bottom: var(--spacing-8)">
-					<div class="card-header">
-						<h3>Filter & Search</h3>
-						<div class="flex items-center gap-2">
-							<svg
-								width="20"
-								height="20"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"
-								></path>
-							</svg>
+					<div
+						id="deadline-warning"
+						class="deadline-warning"
+						style="display: none"
+					>
+						<svg
+							width="20"
+							height="20"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+							></path>
+						</svg>
+						<span>Deadline information will appear here</span>
+					</div>
+
+					<div class="card" style="margin-bottom: var(--spacing-8)">
+						<div class="card-header">
+							<h3>Your Team Summary</h3>
+							<div class="flex items-center gap-2">
+								<svg
+									width="20"
+									height="20"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M17 20h5v-2a4 4 0 00-5-4M9 20H4v-2a4 4 0 015-4m4-4a4 4 0 110-8 4 4 0 010 8z"
+									></path>
+								</svg>
+							</div>
+						</div>
+						<div class="card-body">
+							<div class="stats-grid">
+								<div class="stat-card">
+									<h3>Drivers Selected</h3>
+									<p class="stat-value">
+										<span id="selected-count">0</span>/6
+									</p>
+								</div>
+								<div class="stat-card">
+									<h3>Budget Remaining</h3>
+									<p class="stat-value">
+										£<span id="budget-remaining">0</span>
+									</p>
+								</div>
+								<div class="stat-card">
+									<h3>Team Value</h3>
+									<p class="stat-value">
+										£<span id="team-value">0</span>
+									</p>
+								</div>
+							</div>
+
+							<div class="team-actions-enhanced">
+								<button
+									id="clear-team-btn"
+									class="btn btn-secondary"
+								>
+									<svg
+										width="16"
+										height="16"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+										></path>
+									</svg>
+									Clear Team
+								</button>
+
+								<button
+									id="save-team-btn"
+									class="btn btn-primary"
+									disabled
+								>
+									<svg
+										width="16"
+										height="16"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										></path>
+									</svg>
+									Select Drivers First
+								</button>
+							</div>
 						</div>
 					</div>
-					<div class="card-body">
-						<div
-							class="flex flex-wrap gap-4 items-center justify-between"
-						>
-							<div class="flex flex-wrap">
+
+					<div class="card" style="margin-bottom: var(--spacing-8)">
+						<div class="card-header">
+							<h3>Filter & Search</h3>
+							<div class="flex items-center gap-2">
+								<svg
+									width="20"
+									height="20"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"
+									></path>
+								</svg>
+							</div>
+						</div>
+						<div class="card-body">
+							<div
+								class="gap-4 items-center justify-between driver-actions"
+							>
 								<button
 									class="btn btn-secondary filter-btn active"
 									data-category="all"
@@ -187,7 +333,7 @@
 									Category I
 								</button>
 							</div>
-							<div class="flex gap-3 items-center">
+							<div class="flex gap-2 driver-tools">
 								<input
 									type="text"
 									id="search-drivers"
@@ -223,100 +369,100 @@
 							</div>
 						</div>
 					</div>
-				</div>
-
-				<div
-					id="selected-drivers-section"
-					class="card"
-					style="margin-bottom: var(--spacing-8); display: none"
-				>
-					<div class="card-header">
-						<h3>Selected Drivers</h3>
-						<div class="flex items-center gap-2">
-							<svg
-								width="20"
-								height="20"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M5 13l4 4L19 7"
-								></path>
-							</svg>
-						</div>
-					</div>
-					<div class="card-body">
-						<div
-							id="selected-drivers-grid"
-							class="grid grid-cols-4"
-						></div>
-					</div>
-				</div>
-
-				<div class="card">
-					<div class="card-header">
-						<h3>Available Drivers</h3>
-						<div class="flex flex-wrap">
-							<h2 class="text-xs header-title">
-								Please select at least 2 drivers containing
-								every category
-							</h2>
-						</div>
-						<div class="flex items-center gap-2">
-							<svg
-								width="20"
-								height="20"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-								></path>
-							</svg>
-						</div>
-					</div>
-					<div class="card-body">
-						<div id="drivers-grid" class="grid grid-cols-4"></div>
-						<div
-							id="no-drivers"
-							style="
-								display: none;
-								text-align: center;
-								padding: var(--spacing-12);
-							"
-						>
-							<div class="flex flex-col items-center">
+					<div
+						id="selected-drivers-section"
+						class="card"
+						style="margin-bottom: var(--spacing-8); display: none"
+					>
+						<div class="card-header">
+							<h3>Selected Drivers</h3>
+							<div class="flex items-center gap-2">
 								<svg
-									width="48"
-									height="48"
+									width="20"
+									height="20"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
-									class="text-tertiary"
 								>
 									<path
 										stroke-linecap="round"
 										stroke-linejoin="round"
 										stroke-width="2"
-										d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.034 0-3.9.785-5.291 2.06M6.343 6.343A8 8 0 1017.657 17.657 8 8 0 006.343 6.343z"
+										d="M5 13l4 4L19 7"
 									></path>
 								</svg>
-								<div>
-									<h4 style="margin-bottom: var(--spacing-2)">
-										No drivers found
-									</h4>
-									<p>
-										Try adjusting your search or filter
-										criteria.
-									</p>
+							</div>
+						</div>
+						<div class="card-body">
+							<div
+								id="selected-drivers-grid"
+								class="grid grid-cols-4"
+							></div>
+						</div>
+					</div>
+
+					<div class="card">
+						<div class="card-header">
+							<h3>Available Drivers</h3>
+							<div class="flex items-center gap-2">
+								<svg
+									width="20"
+									height="20"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+									></path>
+								</svg>
+							</div>
+						</div>
+						<div class="card-body">
+							<div
+								id="drivers-grid"
+								class="grid grid-cols-4"
+							></div>
+							<div
+								id="no-drivers"
+								style="
+									display: none;
+									text-align: center;
+									padding: var(--spacing-12);
+								"
+							>
+								<div class="flex flex-col items-center">
+									<svg
+										width="48"
+										height="48"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+										class="text-tertiary"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.034 0-3.9.785-5.291 2.06M6.343 6.343A8 8 0 1017.657 17.657 8 8 0 006.343 6.343z"
+										></path>
+									</svg>
+									<div>
+										<h4
+											style="
+												margin-bottom: var(--spacing-2);
+											"
+										>
+											No drivers found
+										</h4>
+										<p>
+											Try adjusting your search or filter
+											criteria.
+										</p>
+									</div>
 								</div>
 							</div>
 						</div>

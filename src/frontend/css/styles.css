@@ -1524,23 +1524,14 @@ table tbody tr:last-child td {
 	overflow: hidden;
 }
 
-.driver-actions {
-	display: flex;
-	gap: var(--spacing-1-5);
-	margin-top: auto;
-}
-
-.driver-actions .btn {
-	flex: 1;
-	justify-content: center;
-	padding: var(--spacing-1-5) var(--spacing-2);
-	font-size: var(--font-size-xs);
-	min-height: 1.75rem;
+.driver-tools {
+	gap: 0.75rem;
+	align-items: center;
+	margin-top: 1.5rem;
 }
 
 .filter-btn {
 	position: relative;
-	overflow: hidden;
 	padding: var(--spacing-2) var(--spacing-3);
 	font-size: var(--font-size-xs);
 	min-height: 2rem;
@@ -1567,6 +1558,7 @@ table tbody tr:last-child td {
 .flex.gap-3 {
 	margin-bottom: 0.84rem;
 }
+
 .notification {
 	position: fixed;
 	top: var(--spacing-4);
@@ -1645,6 +1637,28 @@ table tbody tr:last-child td {
 		--spacing-8: 2rem;
 		--spacing-10: 2.5rem;
 		--spacing-12: 3rem;
+	}
+
+	.driver-actions {
+		flex-direction: column;
+	}
+
+	.driver-actions .btn {
+		width: 100%;
+		justify-content: center;
+		margin-bottom: var(--spacing-2);
+	}
+
+	.driver-tools {
+		display: flex;
+		flex-direction: row;
+		gap: var(--spacing-2);
+	}
+
+	.search-input,
+	.driver-tools button {
+		flex: 1 1 50%;
+		width: auto;
 	}
 
 	.grid-cols-4,
@@ -1735,11 +1749,6 @@ table tbody tr:last-child td {
 		justify-content: center;
 	}
 
-	.search-input {
-		width: 100%;
-		min-width: auto;
-	}
-
 	.card-header,
 	.card-body,
 	.card-footer {
@@ -1779,19 +1788,6 @@ table tbody tr:last-child td {
 	}
 
 	.btn:last-child {
-		margin-bottom: 0;
-	}
-
-	.driver-actions {
-		flex-direction: column;
-		gap: var(--spacing-1);
-	}
-
-	.driver-actions .btn {
-		margin-bottom: var(--spacing-1);
-	}
-
-	.driver-actions .btn:last-child {
 		margin-bottom: 0;
 	}
 
@@ -1890,6 +1886,147 @@ button:focus-visible,
 
 .currency-group {
 	display: inline-flex;
-	gap: 0; /* no gap between £ and number */
+	gap: 0;
 	align-items: center;
+}
+.race-info-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.race-detail-item {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.race-detail-item label {
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	font-weight: 500;
+}
+
+.race-detail-item span {
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.race-status-container {
+	margin-top: 1rem;
+	display: flex;
+	justify-content: center;
+}
+
+.race-status-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.5rem 1rem;
+	border-radius: 6px;
+	font-weight: 500;
+	font-size: 0.875rem;
+}
+
+.race-status.open {
+	background-color: var(--success-bg, #f0f9f0);
+	color: var(--success-color, #16a34a);
+	border: 1px solid var(--success-color, #16a34a);
+}
+
+.race-status.urgent {
+	background-color: var(--warning-bg, #fef3c7);
+	color: var(--warning-color, #d97706);
+	border: 1px solid var(--warning-color, #d97706);
+	animation: pulse 2s infinite;
+}
+
+.race-status.expired {
+	background-color: var(--error-bg, #fef2f2);
+	color: var(--error-color, #dc2626);
+	border: 1px solid var(--error-color, #dc2626);
+}
+
+.race-status.unavailable {
+	background-color: var(--border-light, #f3f4f6);
+	color: var(--text-tertiary, #6b7280);
+	border: 1px solid var(--border-color, #d1d5db);
+}
+
+.deadline-warning {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem;
+	border-radius: 8px;
+	margin-bottom: 1.5rem;
+	font-weight: 500;
+}
+
+.deadline-warning.urgent {
+	background-color: var(--warning-bg, #fef3c7);
+	color: var(--warning-color, #d97706);
+	border: 1px solid var(--warning-color, #d97706);
+}
+
+.deadline-warning.expired {
+	background-color: var(--error-bg, #fef2f2);
+	color: var(--error-color, #dc2626);
+	border: 1px solid var(--error-color, #dc2626);
+}
+
+.deadline-warning svg {
+	flex-shrink: 0;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.7;
+	}
+}
+
+.team-actions-enhanced {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	justify-content: left;
+	margin-top: 1.5rem;
+}
+
+.team-actions-enhanced .btn {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1.5rem;
+	font-weight: 500;
+}
+
+.team-actions-enhanced .btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.team-actions-enhanced .btn.btn-success {
+	background-color: var(--success-color, #16a34a);
+	border-color: var(--success-color, #16a34a);
+	color: white;
+}
+
+@media (max-width: 768px) {
+	.race-info-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.team-actions-enhanced {
+		flex-direction: column;
+	}
+
+	.team-actions-enhanced .btn {
+		width: 100%;
+		justify-content: center;
+	}
 }
