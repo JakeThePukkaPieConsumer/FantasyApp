@@ -339,6 +339,10 @@ class RosterApi extends ApiModule {
 		return this.get(endpoint);
 	}
 
+	async validateRoster(year) {
+		return this.get(`/api/roster/${year}/validate`)
+	}
+
 	async getRosterById(year, rosterId) {
 		return this.get(`/api/roster/${year}/${rosterId}`);
 	}
@@ -347,8 +351,8 @@ class RosterApi extends ApiModule {
 		return this.post(`/api/roster/${year}`, rosterData);
 	}
 
-	async updateRoster(year, rosterId, rosterData) {
-		return this.put(`/api/roster/${year}/${rosterId}`, rosterData);
+	async updateRoster(year, userId, rosterId, rosterData) {
+		return this.put(`/api/roster/${year}/${userId}/${rosterId}`, rosterData);
 	}
 
 	async deleteRoster(year, rosterId) {

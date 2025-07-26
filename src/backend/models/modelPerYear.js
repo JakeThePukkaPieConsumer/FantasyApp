@@ -50,10 +50,15 @@ function getDriverModelForYear(year) {
 		return modelCache.drivers[modelName];
 	}
 
-	const model = mongoose.model(modelName, driverSchema, collectionName);
-	modelCache.drivers[modelName] = model;
-
-	return model;
+	try {
+		const existingModel = mongoose.model(modelName);
+		modelCache.drivers[modelName] = existingModel;
+		return existingModel;
+	} catch (error) {
+		const model = mongoose.model(modelName, driverSchema, collectionName);
+		modelCache.drivers[modelName] = model;
+		return model;
+	}
 }
 
 /**
@@ -65,16 +70,21 @@ function getUserModelForYear(year) {
 	ensureValidYear(year);
 
 	const modelName = `User_${year}`;
-	const collectionName = `user_${year}`;
+	const collectionName = `users_${year}`;
 
 	if (modelCache.users[modelName]) {
 		return modelCache.users[modelName];
 	}
 
-	const model = mongoose.model(modelName, userSchema, collectionName);
-	modelCache.users[modelName] = model;
-
-	return model;
+	try {
+		const existingModel = mongoose.model(modelName);
+		modelCache.users[modelName] = existingModel;
+		return existingModel;
+	} catch (error) {
+		const model = mongoose.model(modelName, userSchema, collectionName);
+		modelCache.users[modelName] = model;
+		return model;
+	}
 }
 
 /**
@@ -92,14 +102,19 @@ function getRaceModelForYear(year) {
 		return modelCache.races[modelName];
 	}
 
-	const model = mongoose.model(
-		modelName,
-		raceSchemaWithEvents,
-		collectionName
-	);
-	modelCache.races[modelName] = model;
-
-	return model;
+	try {
+		const existingModel = mongoose.model(modelName);
+		modelCache.races[modelName] = existingModel;
+		return existingModel;
+	} catch (error) {
+		const model = mongoose.model(
+			modelName,
+			raceSchemaWithEvents,
+			collectionName
+		);
+		modelCache.races[modelName] = model;
+		return model;
+	}
 }
 
 /**
@@ -117,33 +132,42 @@ function getRosterModelForYear(year) {
 		return modelCache.rosters[modelName];
 	}
 
-	const yearRosterSchema = new mongoose.Schema({
-		user: {
-			type: mongoose.Schema.Types.ObjectId,
-			ref: `User_${year}`,
-			required: true,
-		},
-		drivers: [
-			{
+	try {
+		const existingModel = mongoose.model(modelName);
+		modelCache.rosters[modelName] = existingModel;
+		return existingModel;
+	} catch (error) {
+		const yearRosterSchema = new mongoose.Schema({
+			user: {
 				type: mongoose.Schema.Types.ObjectId,
-				ref: `Driver_${year}`,
+				ref: `User_${year}`,
 				required: true,
 			},
-		],
-		budgetUsed: { type: Number, default: 0, min: 0, required: true },
-		race: {
-			type: mongoose.Schema.Types.ObjectId,
-			ref: `Race_${year}`,
-			required: true,
-		},
-		pointsEarned: { type: Number, default: 0 },
-		createdAt: { type: Date, default: Date.now },
-	});
+			drivers: [
+				{
+					type: mongoose.Schema.Types.ObjectId,
+					ref: `Driver_${year}`,
+					required: true,
+				},
+			],
+			budgetUsed: { type: Number, default: 0, min: 0, required: true },
+			race: {
+				type: mongoose.Schema.Types.ObjectId,
+				ref: `Race_${year}`,
+				required: true,
+			},
+			pointsEarned: { type: Number, default: 0 },
+			createdAt: { type: Date, default: Date.now },
+		});
 
-	const model = mongoose.model(modelName, yearRosterSchema, collectionName);
-	modelCache.rosters[modelName] = model;
-
-	return model;
+		const model = mongoose.model(
+			modelName,
+			yearRosterSchema,
+			collectionName
+		);
+		modelCache.rosters[modelName] = model;
+		return model;
+	}
 }
 
 /**

@@ -993,9 +993,16 @@ class DriverSelection {
 			return false;
 		}
 
-		if (this.selectedDrivers.length >= this.maxDrivers) {
+		if (this.selectedDrivers.length === 0) {
 			notificationModule.warning(
-				`Please select exactly ${this.maxDrivers} drivers before saving.`
+				"Please select at least one driver before saving."
+			);
+			return false;
+		}
+
+		if (this.selectedDrivers.length > this.maxDrivers) {
+			notificationModule.warning(
+				`Please select no more than ${this.maxDrivers} drivers.`
 			);
 			return false;
 		}
@@ -1033,6 +1040,7 @@ class DriverSelection {
 			if (this.existingRoster) {
 				result = await this.apiModules.rosters.updateRoster(
 					this.currentYear,
+					this.currentUser.id,
 					this.existingRoster._id,
 					rosterData
 				);
