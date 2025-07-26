@@ -6,7 +6,7 @@ class DriverSelection {
 	constructor() {
 		this.apiModules = createApiModules(authModule);
 		this.authModule = authModule;
-		this.currentUser = null;
+		this.currentUser = this.getCurrentUser();
 		this.drivers = [];
 		this.currentYear = this.authModule.getCurrentYear();
 		this.selectedDrivers = [];
@@ -14,9 +14,10 @@ class DriverSelection {
 		this.currentFilter = "all";
 		this.maxDrivers = 6;
 		this.sortByValue = false;
-		this.currentRace = null || 'None';
-		this.raceDeadlinePassed = false;
+		this.currentRace = null;
+		this.raceStatus = null;
 		this.existingRoster = null;
+		this.deadlineTimer = null;
 	}
 
 	async init() {
@@ -26,15 +27,13 @@ class DriverSelection {
 			this.setupEventListeners();
 			await this.checkAuthentication();
 			await this.loadDrivers();
-			await this.loadNextRace();
-			await this.loadNextRace();
+			await this.loadRaceInformation();
 
 			if (this.currentRace) {
 				await this.loadExistingRoster();
 			}
 
 			this.startDeadlineTimer();
-
 			this.showDriverSelection();
 		} catch (err) {
 			console.error("Failed to initialize driver selection:", err);
@@ -85,6 +84,118 @@ class DriverSelection {
 		}
 	}
 
+	async loadRaceInformation() {
+		try {
+			const nextRaceResult =
+				await this.apiModules.races.getNextSubmissionRace(
+					this.currentYear
+				);
+
+			if (nextRaceResult.success && nextRaceResult.data.next) {
+				this.currentRace = nextRaceResult.data.next;
+				console.log(this.currentRace);
+				await this.checkRaceEligibility();
+			} else {
+				const currentRaceResult =
+					await this.apiModules.races.getCurrentRace(
+						this.currentYear
+					);
+
+				if (
+					currentRaceResult.success &&
+					currentRaceResult.data.current
+				) {
+					this.currentRace = currentRaceResult.data.current;
+					await this.checkRaceEligibility();
+				} else {
+					this.currentRace = null;
+					this.raceStatus = {
+						status: "no-race",
+						message: "No races available for submissions",
+						canSubmit: false,
+					};
+				}
+			}
+
+			this.updateRaceDisplay();
+			console.log(
+				"Race information loaded:",
+				this.currentRace?.name || "No race available"
+			);
+		} catch (error) {
+			console.error("Error loading race information:", error);
+			notificationModule.error("Failed to load race information");
+			this.currentRace = null;
+			this.raceStatus = {
+				status: "error",
+				message: "Error loading race information",
+				canSubmit: false,
+			};
+			this.updateRaceDisplay();
+		}
+	}
+
+	async checkRaceEligibility() {
+		if (!this.currentRace) {
+			this.raceStatus = {
+				status: "no-race",
+				message: "No race available",
+				canSubmit: false,
+			};
+			return;
+		}
+
+		try {
+			const eligibilityResult =
+				await this.apiModules.races.checkSubmissionEligibility(
+					this.currentYear,
+					this.currentRace._id
+				);
+
+			if (eligibilityResult.success) {
+				const data = eligibilityResult.data;
+
+				if (data.locked) {
+					this.raceStatus = {
+						status: "locked",
+						message: "Race is locked by administrators",
+						canSubmit: false,
+						timeRemaining: 0,
+					};
+				} else if (data.deadlinePassed) {
+					this.raceStatus = {
+						status: "expired",
+						message: "Submission deadline has passed",
+						canSubmit: false,
+						timeRemaining: 0,
+					};
+				} else {
+					this.raceStatus = {
+						status: data.deadlineSoon ? "urgent" : "open",
+						message: data.deadlineSoon
+							? `Deadline approaching! ${data.hoursRemaining}h remaining`
+							: `${data.hoursRemaining}h until deadline`,
+						canSubmit: data.eligible,
+						timeRemaining: data.timeRemaining,
+						hoursRemaining: data.hoursRemaining,
+						deadlineSoon: data.deadlineSoon,
+					};
+				}
+			} else {
+				throw new Error(eligibilityResult.error);
+			}
+		} catch (error) {
+			console.error("Error checking race eligibility:", error);
+			this.raceStatus = {
+				status: "error",
+				message: "Error checking race status",
+				canSubmit: false,
+			};
+		}
+
+		this.updateDeadlineStatus();
+	}
+
 	async getUserRosterHistory() {
 		try {
 			const result = await this.apiModules.rosters.getUserRosters(
@@ -112,6 +223,7 @@ class DriverSelection {
 				);
 				return;
 			}
+
 			const historyHtml = rosters
 				.map(
 					(roster) => `
@@ -164,9 +276,8 @@ class DriverSelection {
 		const saveTeamBtn = document.getElementById("save-team-btn");
 		if (saveTeamBtn) {
 			saveTeamBtn.addEventListener("click", async () => {
-				const modifyCheck = this.canModifyRoster();
-				if (!modifyCheck.canModify) {
-					notificationModule.error(modifyCheck.reason);
+				if (!this.canModifyRoster()) {
+					notificationModule.error(this.getRosterModificationError());
 					return;
 				}
 				await this.saveTeamWithConfirmation();
@@ -176,10 +287,9 @@ class DriverSelection {
 		const clearTeamBtn = document.getElementById("clear-team-btn");
 		if (clearTeamBtn) {
 			clearTeamBtn.addEventListener("click", () => {
-				const modifyCheck = this.canModifyRoster();
-				if (!modifyCheck.canModify) {
+				if (!this.canModifyRoster()) {
 					notificationModule.error(
-						`Cannot clear team: ${modifyCheck.reason}`
+						`Cannot clear team: ${this.getRosterModificationError()}`
 					);
 					return;
 				}
@@ -227,37 +337,24 @@ class DriverSelection {
 		}
 
 		document.addEventListener("keydown", (e) => {
-			const modifyCheck = this.canModifyRoster();
-
 			if ((e.ctrlKey || e.metaKey) && e.key === "s") {
 				e.preventDefault();
-				if (modifyCheck.canModify) {
+				if (this.canModifyRoster()) {
 					this.saveTeamWithConfirmation();
 				} else {
 					notificationModule.warning(
-						`Cannot save: ${modifyCheck.reason}`
+						`Cannot save: ${this.getRosterModificationError()}`
 					);
 				}
 			}
 
 			if ((e.ctrlKey || e.metaKey) && e.key === "r") {
 				e.preventDefault();
-				if (modifyCheck.canModify) {
+				if (this.canModifyRoster()) {
 					this.clearTeam();
 				} else {
 					notificationModule.warning(
-						`Cannot clear: ${modifyCheck.reason}`
-					);
-				}
-			}
-
-			if ((e.ctrlKey || e.metaKey) && e.key === "o") {
-				e.preventDefault();
-				if (modifyCheck.canModify) {
-					this.optimizeTeamSelection();
-				} else {
-					notificationModule.warning(
-						`Cannot optimize: ${modifyCheck.reason}`
+						`Cannot clear: ${this.getRosterModificationError()}`
 					);
 				}
 			}
@@ -275,7 +372,7 @@ class DriverSelection {
 			if (document.hidden) {
 				this.stopDeadlineTimer();
 			} else {
-				this.loadNextRace().then(() => {
+				this.loadRaceInformation().then(() => {
 					if (this.currentRace) {
 						this.loadExistingRoster();
 					}
@@ -300,9 +397,31 @@ class DriverSelection {
 			);
 		});
 
-		console.log(
-			"Driver selection event listeners set up with race integration"
-		);
+		console.log("Driver selection event listeners set up with new RaceApi");
+	}
+
+	async refreshAllData() {
+		const loadingNotification =
+			notificationModule.showLoading("Refreshing data...");
+
+		try {
+			await Promise.all([this.loadDrivers(), this.loadRaceInformation()]);
+
+			if (this.currentRace) {
+				await this.loadExistingRoster();
+			}
+
+			this.updateTeamStats();
+			this.renderDrivers();
+			this.renderSelectedDrivers();
+
+			notificationModule.success("Data refreshed successfully!");
+		} catch (error) {
+			console.error("Error refreshing data:", error);
+			notificationModule.error("Failed to refresh data");
+		} finally {
+			notificationModule.remove(loadingNotification);
+		}
 	}
 
 	setActiveFilter(activeBtn) {
@@ -440,10 +559,9 @@ class DriverSelection {
 	}
 
 	selectDriver(driver) {
-		const modifyCheck = this.canModifyRoster();
-		if (!modifyCheck.canModify) {
+		if (!this.canModifyRoster()) {
 			notificationModule.error(
-				`Cannot select drivers: ${modifyCheck.reason}`
+				`Cannot select drivers: ${this.getRosterModificationError()}`
 			);
 			return;
 		}
@@ -468,34 +586,37 @@ class DriverSelection {
 		this.renderDrivers();
 		this.renderSelectedDrivers();
 
-		const validation = this.validateDriversForRace();
-		if (this.selectedDrivers.length === this.maxDrivers) {
+		const validation = this.validateTeamComposition();
+		if (this.selectedDrivers.length > 0) {
 			if (validation.valid) {
-				notificationModule.success(
-					"Team is complete and ready to submit!"
-				);
+				if (this.selectedDrivers.length === this.maxDrivers) {
+					notificationModule.success(
+						"Team is complete and ready to submit!"
+					);
+				} else {
+					notificationModule.info(
+						`Team valid but incomplete. Add ${
+							this.maxDrivers - this.selectedDrivers.length
+						} more driver(s) for a full team.`
+					);
+				}
 			} else {
-				notificationModule.warning(
-					`Team complete but has issues: ${validation.errors.join(
-						", "
-					)}`
+				const filteredErrors = validation.errors.filter(
+					(error) => !error.includes("Must have exactly")
 				);
+				if (filteredErrors.length > 0) {
+					notificationModule.warning(filteredErrors[0]);
+				}
 			}
-		} else if (validation.errors.length > 0) {
-			const relevantErrors = validation.errors.filter(
-				(error) => !error.includes("Must select exactly")
-			);
-			if (relevantErrors.length > 0) {
-				notificationModule.warning(relevantErrors[0]);
-			}
+		} else {
+			notificationModule.warning("Please select at least one driver.");
 		}
 	}
 
 	removeDriver(driverId) {
-		const modifyCheck = this.canModifyRoster();
-		if (!modifyCheck.canModify) {
+		if (!this.canModifyRoster()) {
 			notificationModule.error(
-				`Cannot remove drivers: ${modifyCheck.reason}`
+				`Cannot remove drivers: ${this.getRosterModificationError()}`
 			);
 			return;
 		}
@@ -569,7 +690,6 @@ class DriverSelection {
 		const teamValue = this.getTeamValue();
 		const budgetRemaining = this.currentUser.budget - teamValue;
 		const selectedCount = this.selectedDrivers.length;
-		const isComplete = selectedCount <= this.maxDrivers;
 
 		document.getElementById("selected-count").textContent = selectedCount;
 		document.getElementById("budget-remaining").textContent =
@@ -581,8 +701,34 @@ class DriverSelection {
 
 		const saveBtn = document.getElementById("save-team-btn");
 		if (saveBtn) {
-			const hasAllCategories = this.hasRequiredCategories();
-			saveBtn.disabled = !(isComplete && hasAllCategories);
+			const validation = this.validateTeamComposition();
+			const canSave = validation.valid && this.canModifyRoster();
+
+			saveBtn.disabled = !canSave;
+
+			if (!this.currentRace) {
+				saveBtn.textContent = "No Race Available";
+			} else if (!this.raceStatus?.canSubmit) {
+				saveBtn.textContent =
+					this.raceStatus?.status === "expired"
+						? "Deadline Passed"
+						: this.raceStatus?.status === "locked"
+						? "Race Locked"
+						: "Cannot Submit";
+			} else if (selectedCount === 0) {
+				saveBtn.textContent = "Select Drivers First";
+			} else if (selectedCount >= this.maxDrivers) {
+				saveBtn.textContent = `Select ${
+					this.maxDrivers - selectedCount
+				} More Driver${
+					this.maxDrivers - selectedCount !== 1 ? "s" : ""
+				}`;
+			} else if (!validation.valid) {
+				saveBtn.textContent = "Fix Team Issues";
+			} else {
+				const isUpdate = this.existingRoster !== null;
+				saveBtn.textContent = isUpdate ? "Update Team" : "Save Team";
+			}
 		}
 	}
 
@@ -599,10 +745,9 @@ class DriverSelection {
 			return;
 		}
 
-		const modifyCheck = this.canModifyRoster();
-		if (!modifyCheck.canModify) {
+		if (!this.canModifyRoster()) {
 			notificationModule.error(
-				`Cannot clear team: ${modifyCheck.reason}`
+				`Cannot clear team: ${this.getRosterModificationError()}`
 			);
 			return;
 		}
@@ -625,88 +770,7 @@ class DriverSelection {
 		this.renderDrivers();
 		this.renderSelectedDrivers();
 
-		const saveBtn = document.getElementById("save-team-btn");
-		if (saveBtn && !this.raceDeadlinePassed) {
-			if (this.existingRoster) {
-				saveBtn.textContent = "Update Team";
-			} else {
-				saveBtn.textContent = "Save Team";
-			}
-		}
-
 		notificationModule.info("Team selection cleared.");
-	}
-
-	async loadNextRace() {
-		try {
-			const now = new Date();
-
-			let result = await this.apiModules.races.getCurrentRace(this.currentYear);
-
-			let races = result.success ? result.data.races : [];
-
-			if (!races || races.length === 0) {
-				const allRacesResult = await this.apiModules.races.getRaces(
-					this.currentYear,
-					{
-						order: "asc",
-					}
-				);
-				races = allRacesResult.success ? allRacesResult.data.races : [];
-			}
-
-			this.currentRace = races.find((race) => {
-				if (!race.events || race.events.length === 0) return false;
-
-				const sortedEvents = race.events
-					.map((e) => ({ ...e, time: new Date(e.time) }))
-
-				const lastEventTime =
-					sortedEvents[sortedEvents.length - 1].time;
-
-				return lastEventTime > now && !race.isLocked;
-			});
-
-			this.updateRaceDisplay();
-
-			if (this.currentRace) {
-				this.checkRaceDeadline();
-			}
-
-			return this.currentRace || null;
-		} catch (error) {
-			console.error("Error loading next race:", error);
-			notificationModule.error("Failed to load race information");
-			this.currentRace = null;
-			this.updateRaceDisplay();
-			return null;
-		}
-	}
-
-	checkRaceDeadline() {
-		if (!this.currentRace) {
-			this.raceDeadlinePassed = true;
-			return;
-		}
-
-		const now = new Date();
-		const deadline = new Date(this.currentRace.submissionDeadline);
-		this.raceDeadlinePassed = now > deadline;
-
-		this.updateDeadlineStatus();
-	}
-
-	checkRaceDeadline() {
-		if (!this.currentRace) {
-			this.raceDeadlinePassed = true;
-			return;
-		}
-
-		const now = new Date();
-		const deadline = new Date(this.currentRace.submissionDeadline);
-		this.raceDeadlinePassed = now > deadline;
-
-		this.updateDeadlineStatus();
 	}
 
 	updateRaceDisplay() {
@@ -715,14 +779,9 @@ class DriverSelection {
 		const raceRoundEl = document.getElementById("current-race-round");
 		const raceLocationEl = document.getElementById("current-race-location");
 		const raceDeadlineEl = document.getElementById("race-deadline");
-		const raceStatusEl = document.getElementById("race-status");
 
 		if (!this.currentRace) {
 			if (raceInfoEl) raceInfoEl.style.display = "none";
-			if (raceStatusEl) {
-				raceStatusEl.textContent = "No races available for submissions";
-				raceStatusEl.className = "race-status unavailable";
-			}
 			return;
 		}
 
@@ -735,7 +794,14 @@ class DriverSelection {
 
 		if (raceDeadlineEl) {
 			const deadline = new Date(this.currentRace.submissionDeadline);
-			raceDeadlineEl.textContent = deadline.toLocaleString();
+			raceDeadlineEl.textContent = deadline.toLocaleString("en-GB", {
+				timeZone: "UTC",
+				year: "numeric",
+				month: "short",
+				day: "numeric",
+				hour: "2-digit",
+				minute: "2-digit",
+			});
 		}
 
 		this.updateDeadlineStatus();
@@ -745,124 +811,35 @@ class DriverSelection {
 		const raceStatusEl = document.getElementById("race-status");
 		const deadlineWarningEl = document.getElementById("deadline-warning");
 
-		if (!this.currentRace) return;
+		if (!this.raceStatus) return;
 
-		const now = new Date();
-		const deadline = new Date(this.currentRace.submissionDeadline);
-		const timeUntilDeadline = deadline - now;
-		const hoursUntilDeadline = timeUntilDeadline / (1000 * 60 * 60);
+		if (raceStatusEl) {
+			raceStatusEl.textContent = this.raceStatus.message;
+			raceStatusEl.className = `race-status ${this.raceStatus.status}`;
+		}
 
-		if (this.raceDeadlinePassed) {
-			if (raceStatusEl) {
-				raceStatusEl.textContent = "Submission deadline has passed";
-				raceStatusEl.className = "race-status expired";
-			}
-			if (deadlineWarningEl) {
-				deadlineWarningEl.style.display = "block";
-				deadlineWarningEl.className = "deadline-warning expired";
-				deadlineWarningEl.innerHTML = `
-				<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-				</svg>
-				<span>Submissions are closed for this race</span>
-			`;
-			}
-		} else if (hoursUntilDeadline <= 24) {
-			if (raceStatusEl) {
-				raceStatusEl.textContent = `Deadline in ${Math.floor(
-					hoursUntilDeadline
-				)}h ${Math.floor(
-					(timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60)
-				)}m`;
-				raceStatusEl.className = "race-status urgent";
-			}
-			if (deadlineWarningEl) {
+		if (deadlineWarningEl) {
+			if (this.raceStatus.status === "urgent") {
 				deadlineWarningEl.style.display = "block";
 				deadlineWarningEl.className = "deadline-warning urgent";
 				deadlineWarningEl.innerHTML = `
-				<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-				</svg>
-				<span>Hurry! Deadline approaching in less than 24 hours</span>
-			`;
-			}
-		} else {
-			if (raceStatusEl) {
-				const days = Math.floor(hoursUntilDeadline / 24);
-				const hours = Math.floor(hoursUntilDeadline % 24);
-				raceStatusEl.textContent = `${days}d ${hours}h until deadline`;
-				raceStatusEl.className = "race-status open";
-			}
-			if (deadlineWarningEl) {
+					<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+					</svg>
+					<span>Hurry! Deadline approaching soon</span>
+				`;
+			} else if (this.raceStatus.status === "expired") {
+				deadlineWarningEl.style.display = "block";
+				deadlineWarningEl.className = "deadline-warning expired";
+				deadlineWarningEl.innerHTML = `
+					<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+					</svg>
+					<span>Submissions are closed for this race</span>
+				`;
+			} else {
 				deadlineWarningEl.style.display = "none";
 			}
-		}
-	}
-
-	getRosterStatus() {
-		if (!this.currentRace) {
-			return {
-				status: "no-race",
-				message: "No race available for submissions",
-				canSubmit: false,
-			};
-		}
-
-		if (this.raceDeadlinePassed) {
-			return {
-				status: "expired",
-				message: "Submission deadline has passed",
-				canSubmit: false,
-			};
-		}
-
-		if (this.existingRoster) {
-			return {
-				status: "existing",
-				message: `You have already submitted a team for ${this.currentRace.name}`,
-				canSubmit: true,
-				action: "update",
-			};
-		}
-
-		return {
-			status: "new",
-			message: `Ready to submit team for ${this.currentRace.name}`,
-			canSubmit: true,
-			action: "create",
-		};
-	}
-
-	handleRosterError(error) {
-		const errorMessage = error.message.toLowerCase();
-
-		if (errorMessage.includes("deadline")) {
-			notificationModule.error(
-				"Submission deadline has passed for this race."
-			);
-			this.checkRaceDeadline();
-		} else if (errorMessage.includes("locked")) {
-			notificationModule.error(
-				"This race has been locked by administrators."
-			);
-			this.loadNextRace();
-		} else if (errorMessage.includes("budget")) {
-			notificationModule.error(
-				"Team value exceeds your available budget."
-			);
-		} else if (errorMessage.includes("driver")) {
-			notificationModule.error(
-				"One or more selected drivers are invalid. Please refresh and try again."
-			);
-		} else if (errorMessage.includes("race")) {
-			notificationModule.error(
-				"Race information is invalid. Please refresh the page."
-			);
-			this.loadNextRace();
-		} else {
-			notificationModule.error(
-				"An unexpected error occurred. Please try again."
-			);
 		}
 	}
 
@@ -906,11 +883,6 @@ class DriverSelection {
 					`Loaded your existing team for ${this.currentRace.name}.`
 				);
 
-				const saveBtn = document.getElementById("save-team-btn");
-				if (saveBtn && !this.raceDeadlinePassed) {
-					saveBtn.textContent = "Update Team";
-				}
-
 				return true;
 			}
 
@@ -928,13 +900,15 @@ class DriverSelection {
 
 		if (!this.currentRace) {
 			errors.push("No race available for submissions");
-		} else if (this.raceDeadlinePassed) {
-			errors.push("Submission deadline has passed for this race");
+		} else if (!this.raceStatus?.canSubmit) {
+			errors.push(
+				this.raceStatus?.message || "Cannot submit for this race"
+			);
 		}
 
-		if (this.selectedDrivers.length !== this.maxDrivers) {
+		if (this.selectedDrivers.length > this.maxDrivers) {
 			errors.push(
-				`Team must have exactly ${this.maxDrivers} drivers (currently has ${this.selectedDrivers.length})`
+				`Team cannot have more than ${this.maxDrivers} drivers (currently has ${this.selectedDrivers.length})`
 			);
 		}
 
@@ -980,7 +954,14 @@ class DriverSelection {
 						location: this.currentRace.location,
 						deadline: new Date(
 							this.currentRace.submissionDeadline
-						).toLocaleString(),
+						).toLocaleString("en-GB", {
+							timeZone: "UTC",
+							year: "numeric",
+							month: "short",
+							day: "numeric",
+							hour: "2-digit",
+							minute: "2-digit",
+						}),
 				  }
 				: null,
 			drivers: this.selectedDrivers.map((driver) => ({
@@ -1003,14 +984,16 @@ class DriverSelection {
 			return false;
 		}
 
-		if (this.raceDeadlinePassed) {
+		console.log(this.currentUser);
+
+		if (!this.raceStatus?.canSubmit) {
 			notificationModule.error(
-				"Submission deadline has passed for this race"
+				this.raceStatus?.message || "Cannot submit for this race"
 			);
 			return false;
 		}
 
-		if (this.selectedDrivers.length !== this.maxDrivers) {
+		if (this.selectedDrivers.length >= this.maxDrivers) {
 			notificationModule.warning(
 				`Please select exactly ${this.maxDrivers} drivers before saving.`
 			);
@@ -1039,7 +1022,7 @@ class DriverSelection {
 			);
 
 			const rosterData = {
-				user: this.currentUser._id,
+				user: this.currentUser.id,
 				drivers: this.selectedDrivers.map((driver) => driver._id),
 				budgetUsed: teamValue,
 				pointsEarned: 0,
@@ -1078,7 +1061,6 @@ class DriverSelection {
 
 			const saveBtn = document.getElementById("save-team-btn");
 			if (saveBtn) {
-				const originalText = saveBtn.textContent;
 				saveBtn.textContent = "Team Saved!";
 				saveBtn.classList.add("btn-success");
 				saveBtn.disabled = true;
@@ -1086,7 +1068,7 @@ class DriverSelection {
 				setTimeout(() => {
 					saveBtn.textContent = "Update Team";
 					saveBtn.classList.remove("btn-success");
-					saveBtn.disabled = this.raceDeadlinePassed;
+					saveBtn.disabled = !this.raceStatus?.canSubmit;
 				}, 3000);
 			}
 
@@ -1102,22 +1084,7 @@ class DriverSelection {
 			return true;
 		} catch (error) {
 			console.error("Error saving team:", error);
-
-			let errorMessage = "Failed to save team. Please try again.";
-			if (error.message.includes("budget")) {
-				errorMessage =
-					"Budget validation failed. Please check your team value.";
-			} else if (error.message.includes("driver")) {
-				errorMessage =
-					"Invalid driver selection. Please refresh and try again.";
-			} else if (error.message.includes("race")) {
-				errorMessage =
-					"Race validation failed. Please refresh the page.";
-			} else if (error.message.includes("deadline")) {
-				errorMessage = "Submission deadline has passed.";
-			}
-
-			notificationModule.error(errorMessage);
+			this.handleRosterError(error);
 			return false;
 		}
 	}
@@ -1165,47 +1132,78 @@ class DriverSelection {
 		await this.saveTeam();
 	}
 
-	updateTeamStats() {
-		const teamValue = this.getTeamValue();
-		const budgetRemaining = this.currentUser.budget - teamValue;
-		const selectedCount = this.selectedDrivers.length;
+	handleRosterError(error) {
+		const errorMessage = error.message.toLowerCase();
 
-		document.getElementById("selected-count").textContent = selectedCount;
-		document.getElementById("budget-remaining").textContent =
-			authModule.formatCurrency(budgetRemaining);
-		document.getElementById("team-value").textContent =
-			authModule.formatCurrency(teamValue);
-		document.getElementById("budget-used").textContent =
-			authModule.formatCurrency(teamValue);
+		if (errorMessage.includes("deadline")) {
+			notificationModule.error(
+				"Submission deadline has passed for this race."
+			);
+			this.loadRaceInformation();
+		} else if (errorMessage.includes("locked")) {
+			notificationModule.error(
+				"This race has been locked by administrators."
+			);
+			this.loadRaceInformation();
+		} else if (errorMessage.includes("budget")) {
+			notificationModule.error(
+				"Team value exceeds your available budget."
+			);
+		} else if (errorMessage.includes("driver")) {
+			notificationModule.error(
+				"One or more selected drivers are invalid. Please refresh and try again."
+			);
+		} else if (errorMessage.includes("race")) {
+			notificationModule.error(
+				"Race information is invalid. Please refresh the page."
+			);
+			this.loadRaceInformation();
+		} else {
+			notificationModule.error(
+				"An unexpected error occurred. Please try again."
+			);
+		}
+	}
 
-		const saveBtn = document.getElementById("save-team-btn");
-		if (saveBtn) {
-			const validation = this.validateTeamComposition();
-			const canSave =
-				validation.valid &&
-				this.currentRace &&
-				!this.raceDeadlinePassed;
-
-			saveBtn.disabled = !canSave;
-
-			if (!this.currentRace) {
-				saveBtn.textContent = "No Race Available";
-			} else if (this.raceDeadlinePassed) {
-				saveBtn.textContent = "Deadline Passed";
-			} else if (selectedCount === 0) {
-				saveBtn.textContent = "Select Drivers First";
-			} else if (selectedCount < this.maxDrivers) {
-				saveBtn.textContent = `Select ${
-					this.maxDrivers - selectedCount
-				} More Driver${
-					this.maxDrivers - selectedCount !== 1 ? "s" : ""
-				}`;
-			} else if (!validation.valid) {
-				saveBtn.textContent = "Fix Team Issues";
-			} else {
-				const isUpdate = this.existingRoster !== null;
-				saveBtn.textContent = isUpdate ? "Update Team" : "Save Team";
+	startDeadlineTimer() {
+		this.deadlineTimer = setInterval(() => {
+			if (this.currentRace && this.raceStatus) {
+				this.checkRaceEligibility();
 			}
+		}, 60000);
+	}
+
+	stopDeadlineTimer() {
+		if (this.deadlineTimer) {
+			clearInterval(this.deadlineTimer);
+			this.deadlineTimer = null;
+		}
+	}
+
+	canModifyRoster() {
+		return this.currentRace && this.raceStatus?.canSubmit;
+	}
+
+	getRosterModificationError() {
+		if (!this.currentRace) {
+			return "No race available";
+		}
+
+		if (!this.raceStatus) {
+			return "Race status unknown";
+		}
+
+		switch (this.raceStatus.status) {
+			case "locked":
+				return "Race is locked by administrators";
+			case "expired":
+				return "Submission deadline has passed";
+			case "error":
+				return "Error loading race information";
+			case "no-race":
+				return "No race available for submissions";
+			default:
+				return "Cannot modify roster at this time";
 		}
 	}
 
@@ -1226,70 +1224,6 @@ class DriverSelection {
 		} catch (error) {
 			console.error("Error showing driver selection:", error);
 		}
-
-		console.log("Driver selection displayed");
-	}
-
-	startDeadlineTimer() {
-		this.deadlineTimer = setInterval(() => {
-			if (this.currentRace) {
-				this.checkRaceDeadline();
-			}
-		}, 60000);
-	}
-
-	stopDeadlineTimer() {
-		if (this.deadlineTimer) {
-			clearInterval(this.deadlineTimer);
-			this.deadlineTimer = null;
-		}
-	}
-
-	formatTimeRemaining(deadline) {
-		const now = new Date();
-		const timeRemaining = new Date(deadline) - now;
-
-		if (timeRemaining <= 0) {
-			return "Expired";
-		}
-
-		const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
-		const hours = Math.floor(
-			(timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-		);
-		const minutes = Math.floor(
-			(timeRemaining % (1000 * 60 * 60)) / (1000 * 60)
-		);
-
-		if (days > 0) {
-			return `${days}d ${hours}h`;
-		} else if (hours > 0) {
-			return `${hours}h ${minutes}m`;
-		} else {
-			return `${minutes}m`;
-		}
-	}
-
-	canModifyRoster() {
-		if (!this.currentRace) {
-			return { canModify: false, reason: "No race available" };
-		}
-
-		if (this.currentRace.isLocked) {
-			return {
-				canModify: false,
-				reason: "Race is locked by administrators",
-			};
-		}
-
-		if (this.raceDeadlinePassed) {
-			return {
-				canModify: false,
-				reason: "Submission deadline has passed",
-			};
-		}
-
-		return { canModify: true, reason: null };
 	}
 
 	showUnauthorized() {
@@ -1309,48 +1243,6 @@ class DriverSelection {
 		console.log(
 			"User info updated for driver selection:",
 			this.currentUser.username
-		);
-	}
-
-	updateButtonStates() {
-		const modifyCheck = this.canModifyRoster();
-		const saveBtn = document.getElementById("save-team-btn");
-		const clearBtn = document.getElementById("clear-team-btn");
-		const autoFillBtn = document.getElementById("auto-fill-btn");
-
-		if (clearBtn) clearBtn.disabled = !modifyCheck.canModify;
-		if (autoFillBtn) autoFillBtn.disabled = !modifyCheck.canModify;
-
-		if (saveBtn && !modifyCheck.canModify) {
-			saveBtn.disabled = true;
-		}
-
-		const buttons = [saveBtn, clearBtn, autoFillBtn].filter(Boolean);
-		buttons.forEach((btn) => {
-			if (!modifyCheck.canModify) {
-				btn.title = `Disabled: ${modifyCheck.reason}`;
-				btn.classList.add("disabled-by-race");
-			} else {
-				btn.title = "";
-				btn.classList.remove("disabled-by-race");
-			}
-		});
-	}
-
-	getCurrentUser() {
-		return this.currentUser;
-	}
-
-	getSelectedDrivers() {
-		return [...this.selectedDrivers];
-	}
-
-	getAvailableDrivers() {
-		return this.drivers.filter(
-			(driver) =>
-				!this.selectedDrivers.some(
-					(selected) => selected._id === driver._id
-				)
 		);
 	}
 
@@ -1383,6 +1275,39 @@ class DriverSelection {
 
 		return [...required].filter((cat) => !found.has(cat));
 	}
+
+	getSelectedCategories() {
+		const categories = new Set();
+		this.selectedDrivers.forEach((driver) => {
+			driver.categories.forEach((cat) => categories.add(cat));
+		});
+		return Array.from(categories).sort();
+	}
+
+	getCurrentUser() {
+		return this.currentUser;
+	}
+
+	getSelectedDrivers() {
+		return [...this.selectedDrivers];
+	}
+
+	getAvailableDrivers() {
+		return this.drivers.filter(
+			(driver) =>
+				!this.selectedDrivers.some(
+					(selected) => selected._id === driver._id
+				)
+		);
+	}
+
+	getCurrentRace() {
+		return this.currentRace;
+	}
+
+	getRaceStatus() {
+		return this.raceStatus;
+	}
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -1391,7 +1316,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 	const driverSelection = new DriverSelection();
 	await driverSelection.init();
 
-	if (process.env.NODE_ENV === "development") {
+	if (
+		typeof process !== "undefined" &&
+		process.env?.NODE_ENV === "development"
+	) {
 		window.driverSelection = driverSelection;
 	}
 });
