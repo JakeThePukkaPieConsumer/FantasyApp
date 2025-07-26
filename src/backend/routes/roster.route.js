@@ -1,416 +1,447 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const { 
-    getRosterModelForYear, 
-    getDriverModelForYear,
-    getUserModelForYear,
-    getRaceModelForYear,
-    validateYear 
-} = require('../models/modelPerYear');
+const express = require("express");
+const mongoose = require("mongoose");
 const {
-    createRosterValidation,
-    updateRosterValidation,
-    mongoIdValidation,
-    yearValidation
-} = require('../middleware/validation');
-const { checkRole } = require('../middleware/rbac');
-const { AppError, catchAsync } = require('../middleware/errorHandler');
-const { authenticateToken, checkElevated } = require('../middleware/auth');
-const { body } = require('express-validator');
+	getRosterModelForYear,
+	getDriverModelForYear,
+	getUserModelForYear,
+	getRaceModelForYear,
+	validateYear,
+} = require("../models/modelPerYear");
+const {
+	createRosterValidation,
+	updateRosterValidation,
+	mongoIdValidation,
+	yearValidation,
+} = require("../middleware/validation");
+const { checkRole } = require("../middleware/rbac");
+const { AppError, catchAsync } = require("../middleware/errorHandler");
+const { authenticateToken, checkElevated } = require("../middleware/auth");
+const { body } = require("express-validator");
 
 const router = express.Router();
 
-// Get all rosters for a specific year
-router.get('/:year',
-    authenticateToken,
-    yearValidation,
-    catchAsync(async (req, res) => {
-        const year = req.params.year;
-        const Roster = getRosterModelForYear(year);
-        
-        const { user, race, sort = 'createdAt', order = 'desc' } = req.query;
-        
-        let query = {};
-        if (user && mongoose.Types.ObjectId.isValid(user)) {
-            query.user = user;
-        }
-        if (race && mongoose.Types.ObjectId.isValid(race)) {
-            query.race = race;
-        }
-        
-        const sortOrder = order === 'desc' ? -1 : 1;
-        const sortOptions = {};
-        if (['createdAt', 'budgetUsed', 'pointsEarned'].includes(sort)) {
-            sortOptions[sort] = sortOrder;
-        } else {
-            sortOptions.createdAt = -1; // Default sort
-        }
-        
-        const rosters = await Roster.find(query)
-            .populate('user', 'username role')
-            .populate('drivers', 'name value categories')
-            .populate('race', 'name roundNumber')
-            .sort(sortOptions);
-            
-        res.status(200).json({
-            success: true,
-            year: parseInt(year),
-            count: rosters.length,
-            rosters
-        });
-    })
+router.get(
+	"/:year",
+	authenticateToken,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const Roster = getRosterModelForYear(year);
+
+		const { user, race, sort = "createdAt", order = "desc" } = req.query;
+
+		let query = {};
+		if (user && mongoose.Types.ObjectId.isValid(user)) {
+			query.user = user;
+		}
+		if (race && mongoose.Types.ObjectId.isValid(race)) {
+			query.race = race;
+		}
+
+		const sortOrder = order === "desc" ? -1 : 1;
+		const sortOptions = {};
+		if (["createdAt", "budgetUsed", "pointsEarned"].includes(sort)) {
+			sortOptions[sort] = sortOrder;
+		} else {
+			sortOptions.createdAt = -1;
+		}
+
+		const rosters = await Roster.find(query)
+			.populate("user", "username role")
+			.populate("drivers", "name value categories")
+			.populate("race", "name roundNumber")
+			.sort(sortOptions);
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			count: rosters.length,
+			rosters,
+		});
+	})
 );
 
-// Get single roster by ID for a specific year
-router.get('/:year/:id',
-    authenticateToken,
-    yearValidation,
-    mongoIdValidation(),
-    catchAsync(async (req, res) => {
-        const { year, id } = req.params;
-        const Roster = getRosterModelForYear(year);
-        
-        const roster = await Roster.findById(id)
-            .populate('user', 'username role points budget')
-            .populate('drivers', 'name value categories points')
-            .populate('race', 'name roundNumber location submissionDeadline isLocked');
-        
-        if (!roster) {
-            throw new AppError('Roster not found', 404);
-        }
-        
-        res.status(200).json({
-            success: true,
-            year: parseInt(year),
-            roster
-        });
-    })
+router.get(
+	"/:year/:id",
+	authenticateToken,
+	yearValidation,
+	mongoIdValidation(),
+	catchAsync(async (req, res) => {
+		const { year, id } = req.params;
+		const Roster = getRosterModelForYear(year);
+
+		const roster = await Roster.findById(id)
+			.populate("user", "username role points budget")
+			.populate("drivers", "name value categories points")
+			.populate(
+				"race",
+				"name roundNumber location submissionDeadline isLocked"
+			);
+
+		if (!roster) {
+			throw new AppError("Roster not found", 404);
+		}
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			roster,
+		});
+	})
 );
 
-// Create a new roster
-router.post('/:year',
-    authenticateToken,
-    yearValidation,
-    createRosterValidation,
-    catchAsync(async (req, res) => {
-        const year = req.params.year;
-        const { user: userId, drivers: driverIds, budgetUsed, pointsEarned = 0, race: raceId } = req.body;
-        
-        // Get models for this year
-        const Roster = getRosterModelForYear(year);
-        const Driver = getDriverModelForYear(year);
-        const User = getUserModelForYear(year);
-        const Race = getRaceModelForYear(year);
-        
-        // Verify user exists
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new AppError('User not found for this year', 404);
-        }
-        
-        // Verify race exists and is not locked
-        const race = await Race.findById(raceId);
-        if (!race) {
-            throw new AppError('Race not found for this year', 404);
-        }
-        
-        if (race.isLocked) {
-            throw new AppError('Cannot create roster for locked race', 400);
-        }
-        
-        // Check if user already has a roster for this race
-        const existingRoster = await Roster.findOne({ user: userId, race: raceId });
-        if (existingRoster) {
-            throw new AppError('User already has a roster for this race', 409);
-        }
-        
-        // Verify all drivers exist
-        const drivers = await Driver.find({ _id: { $in: driverIds } });
-        if (drivers.length !== driverIds.length) {
-            throw new AppError('One or more drivers not found for this year', 404);
-        }
-        
-        // Calculate and verify budget
-        const totalDriverValue = drivers.reduce((sum, driver) => sum + driver.value, 0);
-        if (Math.abs(totalDriverValue - budgetUsed) > 0.01) { // Allow for small floating point differences
-            throw new AppError(`Budget mismatch: expected ${totalDriverValue}, got ${budgetUsed}`, 400);
-        }
-        
-        if (budgetUsed > user.budget) {
-            throw new AppError('Roster exceeds user budget', 400);
-        }
-        
-        // Validate roster composition (example: max 2 drivers per category)
-        const categoryCount = {};
-        drivers.forEach(driver => {
-            driver.categories.forEach(category => {
-                categoryCount[category] = (categoryCount[category] || 0) + 1;
-            });
-        });
-        
-        // You can add specific validation rules here
-        // For example: if (categoryCount['M'] > 2) throw new AppError('Too many M category drivers', 400);
-        
-        const newRoster = new Roster({
-            user: userId,
-            drivers: driverIds,
-            budgetUsed,
-            pointsEarned,
-            race: raceId
-        });
-        
-        await newRoster.save();
-        
-        // Populate the response
-        await newRoster.populate([
-            { path: 'user', select: 'username role' },
-            { path: 'drivers', select: 'name value categories' },
-            { path: 'race', select: 'name roundNumber' }
-        ]);
-        
-        res.status(201).json({
-            success: true,
-            message: 'Roster created successfully',
-            year: parseInt(year),
-            roster: newRoster
-        });
-    })
+router.post(
+	"/:year",
+	authenticateToken,
+	yearValidation,
+	createRosterValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const {
+			user: userId,
+			drivers: driverIds,
+			budgetUsed,
+			pointsEarned = 0,
+			race: raceId,
+		} = req.body;
+
+		const Roster = getRosterModelForYear(year);
+		const Driver = getDriverModelForYear(year);
+		const User = getUserModelForYear(year);
+		const Race = getRaceModelForYear(year);
+
+		const user = await User.findById(userId);
+		if (!user) {
+			throw new AppError("User not found for this year", 404);
+		}
+
+		const race = await Race.findById(raceId);
+		if (!race) {
+			throw new AppError("Race not found for this year", 404);
+		}
+
+		if (race.isLocked) {
+			throw new AppError("Cannot create roster for locked race", 400);
+		}
+
+		const existingRoster = await Roster.findOne({
+			user: userId,
+			race: raceId,
+		});
+		if (existingRoster) {
+			throw new AppError("User already has a roster for this race", 409);
+		}
+
+		const drivers = await Driver.find({ _id: { $in: driverIds } });
+		if (drivers.length !== driverIds.length) {
+			throw new AppError(
+				"One or more drivers not found for this year",
+				404
+			);
+		}
+
+		const totalDriverValue = drivers.reduce(
+			(sum, driver) => sum + driver.value,
+			0
+		);
+		if (Math.abs(totalDriverValue - budgetUsed) > 0.01) {
+			throw new AppError(
+				`Budget mismatch: expected ${totalDriverValue}, got ${budgetUsed}`,
+				400
+			);
+		}
+
+		if (budgetUsed > user.budget) {
+			throw new AppError("Roster exceeds user budget", 400);
+		}
+
+		const categoryCount = {};
+		drivers.forEach((driver) => {
+			driver.categories.forEach((category) => {
+				categoryCount[category] = (categoryCount[category] || 0) + 1;
+			});
+		});
+
+		const newRoster = new Roster({
+			user: userId,
+			drivers: driverIds,
+			budgetUsed,
+			pointsEarned,
+			race: raceId,
+		});
+
+		await newRoster.save();
+
+		await newRoster.populate([
+			{ path: "user", select: "username role" },
+			{ path: "drivers", select: "name value categories" },
+			{ path: "race", select: "name roundNumber" },
+		]);
+
+		res.status(201).json({
+			success: true,
+			message: "Roster created successfully",
+			year: parseInt(year),
+			roster: newRoster,
+		});
+	})
 );
 
-// Update a roster
-router.put('/:year/:id',
-    authenticateToken,
-    yearValidation,
-    mongoIdValidation(),
-    updateRosterValidation,
-    catchAsync(async (req, res) => {
-        const { year, id } = req.params;
-        const updates = req.body;
-        
-        const Roster = getRosterModelForYear(year);
-        const Driver = getDriverModelForYear(year);
-        const User = getUserModelForYear(year);
-        const Race = getRaceModelForYear(year);
-        
-        const allowedUpdates = ['drivers', 'budgetUsed', 'pointsEarned'];
-        const actualUpdates = Object.keys(updates).filter(key => allowedUpdates.includes(key));
-        
-        if (actualUpdates.length === 0) {
-            throw new AppError('No valid fields provided for update', 400);
-        }
-        
-        const roster = await Roster.findById(id).populate('race');
-        if (!roster) {
-            throw new AppError('Roster not found', 404);
-        }
-        
-        // Check if race is locked (only admins can update locked races)
-        if (roster.race.isLocked && req.user.role !== 'admin') {
-            throw new AppError('Cannot update roster for locked race', 403);
-        }
-        
-        // Check if user owns this roster or is admin
-        if (roster.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-            throw new AppError('You can only update your own rosters', 403);
-        }
-        
-        // If updating drivers, verify they exist and calculate budget
-        if (updates.drivers) {
-            const drivers = await Driver.find({ _id: { $in: updates.drivers } });
-            if (drivers.length !== updates.drivers.length) {
-                throw new AppError('One or more drivers not found for this year', 404);
-            }
-            
-            const totalDriverValue = drivers.reduce((sum, driver) => sum + driver.value, 0);
-            
-            // If budgetUsed is not provided, calculate it
-            if (!updates.budgetUsed) {
-                updates.budgetUsed = totalDriverValue;
-            } else if (Math.abs(totalDriverValue - updates.budgetUsed) > 0.01) {
-                throw new AppError(`Budget mismatch: expected ${totalDriverValue}, got ${updates.budgetUsed}`, 400);
-            }
-            
-            // Verify user has enough budget
-            const user = await User.findById(roster.user);
-            if (updates.budgetUsed > user.budget) {
-                throw new AppError('Updated roster exceeds user budget', 400);
-            }
-        }
-        
-        const filteredUpdates = {};
-        actualUpdates.forEach(key => {
-            filteredUpdates[key] = updates[key];
-        });
-        
-        const updatedRoster = await Roster.findByIdAndUpdate(
-            id,
-            { $set: filteredUpdates },
-            { new: true, runValidators: true }
-        ).populate([
-            { path: 'user', select: 'username role' },
-            { path: 'drivers', select: 'name value categories points' },
-            { path: 'race', select: 'name roundNumber' }
-        ]);
-        
-        res.status(200).json({
-            success: true,
-            message: 'Roster updated successfully',
-            year: parseInt(year),
-            roster: updatedRoster
-        });
-    })
+router.put(
+	"/:year/:id",
+	authenticateToken,
+	yearValidation,
+	mongoIdValidation(),
+	updateRosterValidation,
+	catchAsync(async (req, res) => {
+		const { year, id } = req.params;
+		const updates = req.body;
+
+		const Roster = getRosterModelForYear(year);
+		const Driver = getDriverModelForYear(year);
+		const User = getUserModelForYear(year);
+		const Race = getRaceModelForYear(year);
+
+		const allowedUpdates = ["drivers", "budgetUsed", "pointsEarned"];
+		const actualUpdates = Object.keys(updates).filter((key) =>
+			allowedUpdates.includes(key)
+		);
+
+		if (actualUpdates.length === 0) {
+			throw new AppError("No valid fields provided for update", 400);
+		}
+
+		const roster = await Roster.findById(id).populate("race");
+		if (!roster) {
+			throw new AppError("Roster not found", 404);
+		}
+
+		if (roster.race.isLocked && req.user.role !== "admin") {
+			throw new AppError("Cannot update roster for locked race", 403);
+		}
+
+		if (
+			roster.user.toString() !== req.user._id.toString() &&
+			req.user.role !== "admin"
+		) {
+			throw new AppError("You can only update your own rosters", 403);
+		}
+
+		if (updates.drivers) {
+			const drivers = await Driver.find({
+				_id: { $in: updates.drivers },
+			});
+			if (drivers.length !== updates.drivers.length) {
+				throw new AppError(
+					"One or more drivers not found for this year",
+					404
+				);
+			}
+
+			const totalDriverValue = drivers.reduce(
+				(sum, driver) => sum + driver.value,
+				0
+			);
+
+			if (!updates.budgetUsed) {
+				updates.budgetUsed = totalDriverValue;
+			} else if (Math.abs(totalDriverValue - updates.budgetUsed) > 0.01) {
+				throw new AppError(
+					`Budget mismatch: expected ${totalDriverValue}, got ${updates.budgetUsed}`,
+					400
+				);
+			}
+
+			const user = await User.findById(roster.user);
+			if (updates.budgetUsed > user.budget) {
+				throw new AppError("Updated roster exceeds user budget", 400);
+			}
+		}
+
+		const filteredUpdates = {};
+		actualUpdates.forEach((key) => {
+			filteredUpdates[key] = updates[key];
+		});
+
+		const updatedRoster = await Roster.findByIdAndUpdate(
+			id,
+			{ $set: filteredUpdates },
+			{ new: true, runValidators: true }
+		).populate([
+			{ path: "user", select: "username role" },
+			{ path: "drivers", select: "name value categories points" },
+			{ path: "race", select: "name roundNumber" },
+		]);
+
+		res.status(200).json({
+			success: true,
+			message: "Roster updated successfully",
+			year: parseInt(year),
+			roster: updatedRoster,
+		});
+	})
 );
 
-// Delete a roster
-router.delete('/:year/:id',
-    authenticateToken,
-    yearValidation,
-    mongoIdValidation(),
-    catchAsync(async (req, res) => {
-        const { year, id } = req.params;
-        const Roster = getRosterModelForYear(year);
-        
-        const roster = await Roster.findById(id).populate('race');
-        if (!roster) {
-            throw new AppError('Roster not found', 404);
-        }
-        
-        // Check if race is locked (only admins can delete from locked races)
-        if (roster.race.isLocked && req.user.role !== 'admin') {
-            throw new AppError('Cannot delete roster for locked race', 403);
-        }
-        
-        // Check if user owns this roster or is admin
-        if (roster.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-            throw new AppError('You can only delete your own rosters', 403);
-        }
-        
-        await Roster.findByIdAndDelete(id);
-        
-        res.status(200).json({
-            success: true,
-            message: 'Roster deleted successfully',
-            year: parseInt(year),
-            deletedRoster: {
-                id: roster._id,
-                user: roster.user,
-                race: roster.race._id
-            }
-        });
-    })
+router.delete(
+	"/:year/:id",
+	authenticateToken,
+	yearValidation,
+	mongoIdValidation(),
+	catchAsync(async (req, res) => {
+		const { year, id } = req.params;
+		const Roster = getRosterModelForYear(year);
+
+		const roster = await Roster.findById(id).populate("race");
+		if (!roster) {
+			throw new AppError("Roster not found", 404);
+		}
+
+		if (roster.race.isLocked && req.user.role !== "admin") {
+			throw new AppError("Cannot delete roster for locked race", 403);
+		}
+
+		if (
+			roster.user.toString() !== req.user._id.toString() &&
+			req.user.role !== "admin"
+		) {
+			throw new AppError("You can only delete your own rosters", 403);
+		}
+
+		await Roster.findByIdAndDelete(id);
+
+		res.status(200).json({
+			success: true,
+			message: "Roster deleted successfully",
+			year: parseInt(year),
+			deletedRoster: {
+				id: roster._id,
+				user: roster.user,
+				race: roster.race._id,
+			},
+		});
+	})
 );
 
-// Get roster statistics for a year
-router.get('/:year/stats',
-    authenticateToken,
-    yearValidation,
-    catchAsync(async (req, res) => {
-        const year = req.params.year;
-        const Roster = getRosterModelForYear(year);
-        
-        const [
-            totalRosters,
-            avgBudgetUsed,
-            avgPointsEarned,
-            topPerformers,
-            rostersByRace
-        ] = await Promise.all([
-            Roster.countDocuments(),
-            Roster.aggregate([
-                { $group: { _id: null, avg: { $avg: '$budgetUsed' } } }
-            ]),
-            Roster.aggregate([
-                { $group: { _id: null, avg: { $avg: '$pointsEarned' } } }
-            ]),
-            Roster.find({})
-                .populate('user', 'username')
-                .populate('race', 'name roundNumber')
-                .sort({ pointsEarned: -1 })
-                .limit(10),
-            Roster.aggregate([
-                {
-                    $group: {
-                        _id: '$race',
-                        count: { $sum: 1 },
-                        avgPoints: { $avg: '$pointsEarned' },
-                        avgBudget: { $avg: '$budgetUsed' }
-                    }
-                },
-                {
-                    $lookup: {
-                        from: `races_${year}`,
-                        localField: '_id',
-                        foreignField: '_id',
-                        as: 'raceDetails'
-                    }
-                },
-                { $unwind: '$raceDetails' },
-                { $sort: { 'raceDetails.roundNumber': 1 } }
-            ])
-        ]);
-        
-        res.status(200).json({
-            success: true,
-            year: parseInt(year),
-            stats: {
-                rosters: {
-                    total: totalRosters,
-                    avgBudgetUsed: avgBudgetUsed[0]?.avg || 0,
-                    avgPointsEarned: avgPointsEarned[0]?.avg || 0
-                },
-                topPerformers: topPerformers.map(roster => ({
-                    user: roster.user.username,
-                    race: roster.race.name,
-                    points: roster.pointsEarned,
-                    budget: roster.budgetUsed
-                })),
-                byRace: rostersByRace.map(item => ({
-                    race: item.raceDetails.name,
-                    round: item.raceDetails.roundNumber,
-                    rosterCount: item.count,
-                    avgPoints: item.avgPoints,
-                    avgBudget: item.avgBudget
-                }))
-            }
-        });
-    })
+router.get(
+	"/:year/stats",
+	authenticateToken,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const Roster = getRosterModelForYear(year);
+
+		const [
+			totalRosters,
+			avgBudgetUsed,
+			avgPointsEarned,
+			topPerformers,
+			rostersByRace,
+		] = await Promise.all([
+			Roster.countDocuments(),
+			Roster.aggregate([
+				{ $group: { _id: null, avg: { $avg: "$budgetUsed" } } },
+			]),
+			Roster.aggregate([
+				{ $group: { _id: null, avg: { $avg: "$pointsEarned" } } },
+			]),
+			Roster.find({})
+				.populate("user", "username")
+				.populate("race", "name roundNumber")
+				.sort({ pointsEarned: -1 })
+				.limit(10),
+			Roster.aggregate([
+				{
+					$group: {
+						_id: "$race",
+						count: { $sum: 1 },
+						avgPoints: { $avg: "$pointsEarned" },
+						avgBudget: { $avg: "$budgetUsed" },
+					},
+				},
+				{
+					$lookup: {
+						from: `races_${year}`,
+						localField: "_id",
+						foreignField: "_id",
+						as: "raceDetails",
+					},
+				},
+				{ $unwind: "$raceDetails" },
+				{ $sort: { "raceDetails.roundNumber": 1 } },
+			]),
+		]);
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			stats: {
+				rosters: {
+					total: totalRosters,
+					avgBudgetUsed: avgBudgetUsed[0]?.avg || 0,
+					avgPointsEarned: avgPointsEarned[0]?.avg || 0,
+				},
+				topPerformers: topPerformers.map((roster) => ({
+					user: roster.user.username,
+					race: roster.race.name,
+					points: roster.pointsEarned,
+					budget: roster.budgetUsed,
+				})),
+				byRace: rostersByRace.map((item) => ({
+					race: item.raceDetails.name,
+					round: item.raceDetails.roundNumber,
+					rosterCount: item.count,
+					avgPoints: item.avgPoints,
+					avgBudget: item.avgBudget,
+				})),
+			},
+		});
+	})
 );
 
-// Get user's rosters for a specific year
-router.get('/:year/user/:userId',
-    authenticateToken,
-    yearValidation,
-    mongoIdValidation('userId'),
-    catchAsync(async (req, res) => {
-        const { year, userId } = req.params;
-        const Roster = getRosterModelForYear(year);
-        
-        // Check if user can access these rosters
-        if (userId !== req.user._id.toString() && req.user.role !== 'admin') {
-            throw new AppError('You can only view your own rosters', 403);
-        }
-        
-        const rosters = await Roster.find({ user: userId })
-            .populate('drivers', 'name value categories points')
-            .populate('race', 'name roundNumber location submissionDeadline isLocked')
-            .sort({ createdAt: -1 });
-        
-        const totalPoints = rosters.reduce((sum, roster) => sum + roster.pointsEarned, 0);
-        const totalBudgetUsed = rosters.reduce((sum, roster) => sum + roster.budgetUsed, 0);
-        
-        res.status(200).json({
-            success: true,
-            year: parseInt(year),
-            userId,
-            count: rosters.length,
-            summary: {
-                totalPoints,
-                totalBudgetUsed,
-                avgPoints: rosters.length > 0 ? totalPoints / rosters.length : 0
-            },
-            rosters
-        });
-    })
+router.get(
+	"/:year/user/:userId",
+	authenticateToken,
+	yearValidation,
+	mongoIdValidation("userId"),
+	catchAsync(async (req, res) => {
+		const { year, userId } = req.params;
+		const Roster = getRosterModelForYear(year);
+
+		if (userId !== req.user._id.toString() && req.user.role !== "admin") {
+			throw new AppError("You can only view your own rosters", 403);
+		}
+
+		const rosters = await Roster.find({ user: userId })
+			.populate("drivers", "name value categories points")
+			.populate(
+				"race",
+				"name roundNumber location submissionDeadline isLocked"
+			)
+			.sort({ createdAt: -1 });
+
+		const totalPoints = rosters.reduce(
+			(sum, roster) => sum + roster.pointsEarned,
+			0
+		);
+		const totalBudgetUsed = rosters.reduce(
+			(sum, roster) => sum + roster.budgetUsed,
+			0
+		);
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			userId,
+			count: rosters.length,
+			summary: {
+				totalPoints,
+				totalBudgetUsed,
+				avgPoints:
+					rosters.length > 0 ? totalPoints / rosters.length : 0,
+			},
+			rosters,
+		});
+	})
 );
 
 module.exports = router;

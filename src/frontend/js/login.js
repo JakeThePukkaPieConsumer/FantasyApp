@@ -1,220 +1,229 @@
-import authModule from './modules/auth.js';
-import notificationModule from './modules/notification.js';
+import authModule from "./modules/auth.js";
+import notificationModule from "./modules/notification.js";
 
 class LoginPage {
-    constructor() {
-        this.isLoading = false;
-        this.users = [];
-    }
+	constructor() {
+		this.isLoading = false;
+		this.users = [];
+	}
 
-    async init() {
-        console.log('Initializing login page...');
-        
-        const authResult = await authModule.checkAuthentication();
-        if (authResult.success) {
-            console.log('User already authenticated, redirecting...');
-            this.redirectToDashboard();
-            return;
-        }
+	async init() {
+		console.log("Initializing login page...");
 
-        await this.loadUsers();
-        this.setupEventListeners();
-        
-        console.log('Login page initialized');
-    }
+		const authResult = await authModule.checkAuthentication();
+		if (authResult.success) {
+			console.log("User already authenticated, redirecting...");
+			this.redirectToDashboard();
+			return;
+		}
 
-    async loadUsers() {
-        try {
-            const result = await authModule.loadUsers();
-            console.log(result);
+		await this.loadUsers();
+		this.setupEventListeners();
 
-            if (result.success) {
-                this.users = result.users;
-                this.populateUserDropdown();
-            } else {
-                throw new Error(result.error);
-            }
-        } catch (error) {
-            console.error('Error loading users:', error);
-            this.showError('Failed to load users. Please refresh the page.');
-        }
-    }
+		console.log("Login page initialized");
+	}
 
-    populateUserDropdown() {
-        const usernameSelect = document.getElementById('username');
-        if (!usernameSelect) return;
+	async loadUsers() {
+		try {
+			const result = await authModule.loadUsersForLogin();
+			console.log(result);
 
-        usernameSelect.innerHTML = '<option value="" disabled selected>Select your name...</option>';
+			if (result.success) {
+				this.users = result.users;
+				this.populateUserDropdown();
+			} else {
+				throw new Error(result.error);
+			}
+		} catch (error) {
+			console.error("Error loading users:", error);
+			this.showError("Failed to load users. Please refresh the page.");
+		}
+	}
 
-        this.users.forEach(user => {
-            const option = document.createElement('option');
-            option.value = user.username;
-            option.textContent = user.username;
-            usernameSelect.appendChild(option);
-        });
+	populateUserDropdown() {
+		const usernameSelect = document.getElementById("username");
+		if (!usernameSelect) return;
 
-        console.log(`Loaded ${this.users.length} users into dropdown`);
-    }
+		usernameSelect.innerHTML =
+			'<option value="" disabled selected>Select your name...</option>';
 
-    setupEventListeners() {
-        const loginForm = document.getElementById('login-form');
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => this.handleLogin(e));
-        }
+		this.users.forEach((user) => {
+			const option = document.createElement("option");
+			option.value = user.username;
+			option.textContent = user.username;
+			usernameSelect.appendChild(option);
+		});
 
-        const pinInput = document.getElementById('pin');
-        if (pinInput) {
-            pinInput.addEventListener('input', (e) => {
-                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
-            });
+		console.log(`Loaded ${this.users.length} users into dropdown`);
+	}
 
-            pinInput.addEventListener('keydown', (e) => {
-                if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
-                    (e.keyCode === 65 && e.ctrlKey === true) ||
-                    (e.keyCode === 67 && e.ctrlKey === true) ||
-                    (e.keyCode === 86 && e.ctrlKey === true) ||
-                    (e.keyCode === 88 && e.ctrlKey === true)) {
-                    return;
-                }
-                // Ensure that it is a number and stop the keypress
-                if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
-                    e.preventDefault();
-                }
-            });
-        }
-        const usernameSelect = document.getElementById('username');
-        if (usernameSelect) {
-            usernameSelect.addEventListener('change', () => {
-                this.hideError();
-                const pinInput = document.getElementById('pin');
-                if (pinInput) {
-                    setTimeout(() => pinInput.focus(), 100);
-                }
-            });
-        }
+	setupEventListeners() {
+		const loginForm = document.getElementById("login-form");
+		if (loginForm) {
+			loginForm.addEventListener("submit", (e) => this.handleLogin(e));
+		}
 
-        console.log('Login event listeners set up');
-    }
+		const pinInput = document.getElementById("pin");
+		if (pinInput) {
+			pinInput.addEventListener("input", (e) => {
+				e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4);
+			});
 
-    async handleLogin(e) {
-        e.preventDefault();
-        
-        if (this.isLoading) return;
+			pinInput.addEventListener("keydown", (e) => {
+				if (
+					[8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+					(e.keyCode === 65 && e.ctrlKey === true) ||
+					(e.keyCode === 67 && e.ctrlKey === true) ||
+					(e.keyCode === 86 && e.ctrlKey === true) ||
+					(e.keyCode === 88 && e.ctrlKey === true)
+				) {
+					return;
+				}
 
-        const formData = new FormData(e.target);
-        const username = formData.get('username');
-        const pin = formData.get('pin');
+				if (
+					(e.shiftKey || e.keyCode < 48 || e.keyCode > 57) &&
+					(e.keyCode < 96 || e.keyCode > 105)
+				) {
+					e.preventDefault();
+				}
+			});
+		}
+		const usernameSelect = document.getElementById("username");
+		if (usernameSelect) {
+			usernameSelect.addEventListener("change", () => {
+				this.hideError();
+				const pinInput = document.getElementById("pin");
+				if (pinInput) {
+					setTimeout(() => pinInput.focus(), 100);
+				}
+			});
+		}
 
-        const validation = authModule.validateLoginForm(username, pin);
-        if (!validation.valid) {
-            this.showError(validation.error);
-            return;
-        }
+		console.log("Login event listeners set up");
+	}
 
-        this.setLoadingState(true);
-        this.hideError();
+	async handleLogin(e) {
+		e.preventDefault();
 
-        try {
-            const loginResult = await authModule.login(username, pin);
+		if (this.isLoading) return;
 
-            if (loginResult.success) {
-                console.log('Login successful for user:', username);
-                notificationModule.success(`Welcome back, ${loginResult.user.username}!`);
-                
-                setTimeout(() => {
-                    this.redirectToDashboard();
-                }, 1000);
-            } else {
-                throw new Error(loginResult.error);
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            this.showError(error.message || 'Login failed. Please try again.');
-        } finally {
-            this.setLoadingState(false);
-        }
-    }
+		const formData = new FormData(e.target);
+		const username = formData.get("username");
+		const pin = formData.get("pin");
 
-    setLoadingState(loading) {
-        this.isLoading = loading;
-        
-        const loginBtn = document.getElementById('login-btn');
-        const loginText = document.getElementById('login-text');
-        const loginSpinner = document.getElementById('login-spinner');
-        const form = document.getElementById('login-form');
+		const validation = authModule.validateLoginForm(username, pin);
+		if (!validation.valid) {
+			this.showError(validation.error);
+			return;
+		}
 
-        if (loginBtn) {
-            loginBtn.disabled = loading;
-        }
+		this.setLoadingState(true);
+		this.hideError();
 
-        if (loginText) {
-            loginText.style.display = loading ? 'none' : 'inline';
-        }
+		try {
+			const loginResult = await authModule.login(username, pin);
 
-        if (loginSpinner) {
-            loginSpinner.style.display = loading ? 'inline-block' : 'none';
-        }
+			if (loginResult.success) {
+				console.log("Login successful for user:", username);
+				notificationModule.success(
+					`Welcome back, ${loginResult.user.username}!`
+				);
 
-        if (form) {
-            const inputs = form.querySelectorAll('input, select, button');
-            inputs.forEach(input => {
-                input.disabled = loading;
-            });
-        }
-    }
+				setTimeout(() => {
+					this.redirectToDashboard();
+				}, 1000);
+			} else {
+				throw new Error(loginResult.error);
+			}
+		} catch (error) {
+			console.error("Login error:", error);
+			this.showError(error.message || "Login failed. Please try again.");
+		} finally {
+			this.setLoadingState(false);
+		}
+	}
 
-    showError(message) {
-        const errorElement = document.getElementById('error-message');
-        if (errorElement) {
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-        }
-    }
+	setLoadingState(loading) {
+		this.isLoading = loading;
 
-    hideError() {
-        const errorElement = document.getElementById('error-message');
-        if (errorElement) {
-            errorElement.style.display = 'none';
-        }
-    }
+		const loginBtn = document.getElementById("login-btn");
+		const loginText = document.getElementById("login-text");
+		const loginSpinner = document.getElementById("login-spinner");
+		const form = document.getElementById("login-form");
 
-    redirectToDashboard() {
-        const redirectUrl = sessionStorage.getItem('loginRedirect') || '/dashboard.html';
-        sessionStorage.removeItem('loginRedirect');
-        
-        window.location.href = redirectUrl;
-    }
+		if (loginBtn) {
+			loginBtn.disabled = loading;
+		}
 
-    async refreshUsers() {
-        await this.loadUsers();
-    }
+		if (loginText) {
+			loginText.style.display = loading ? "none" : "inline";
+		}
 
-    getUsers() {
-        return [...this.users];
-    }
+		if (loginSpinner) {
+			loginSpinner.style.display = loading ? "inline-block" : "none";
+		}
+
+		if (form) {
+			const inputs = form.querySelectorAll("input, select, button");
+			inputs.forEach((input) => {
+				input.disabled = loading;
+			});
+		}
+	}
+
+	showError(message) {
+		const errorElement = document.getElementById("error-message");
+		if (errorElement) {
+			errorElement.textContent = message;
+			errorElement.style.display = "block";
+		}
+	}
+
+	hideError() {
+		const errorElement = document.getElementById("error-message");
+		if (errorElement) {
+			errorElement.style.display = "none";
+		}
+	}
+
+	redirectToDashboard() {
+		const redirectUrl =
+			sessionStorage.getItem("loginRedirect") || "/dashboard.html";
+		sessionStorage.removeItem("loginRedirect");
+
+		window.location.href = redirectUrl;
+	}
+
+	async refreshUsers() {
+		await this.loadUsers();
+	}
+
+	getUsers() {
+		return [...this.users];
+	}
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Login page DOM loaded');
-    
-    const loginPage = new LoginPage();
-    await loginPage.init();
-    
-    window.loginPage = loginPage;
+document.addEventListener("DOMContentLoaded", async () => {
+	console.log("Login page DOM loaded");
+
+	const loginPage = new LoginPage();
+	await loginPage.init();
+
+	window.loginPage = loginPage;
 });
 
-window.addEventListener('pageshow', (event) => {
-    if (event.persisted && window.loginPage) {
-        authModule.checkAuthentication().then(result => {
-            if (result.success) {
-                window.loginPage.redirectToDashboard();
-            }
-        });
-    }
+window.addEventListener("pageshow", (event) => {
+	if (event.persisted && window.loginPage) {
+		authModule.checkAuthentication().then((result) => {
+			if (result.success) {
+				window.loginPage.redirectToDashboard();
+			}
+		});
+	}
 });
 
-window.addEventListener('beforeunload', () => {
-    if (window.loginPage) {
-        window.loginPage.setLoadingState(false);
-    }
+window.addEventListener("beforeunload", () => {
+	if (window.loginPage) {
+		window.loginPage.setLoadingState(false);
+	}
 });

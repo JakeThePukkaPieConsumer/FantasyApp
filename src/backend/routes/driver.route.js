@@ -1,307 +1,319 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const { getDriverModelForYear, validateYear } = require('../models/modelPerYear');
+const express = require("express");
+const mongoose = require("mongoose");
 const {
-    createDriverValidation,
-    updateDriverValidation,
-    mongoIdValidation,
-    handleValidationErrors,
-    yearValidation
-} = require('../middleware/validation');
-const { checkRole } = require('../middleware/rbac');
-const { AppError, catchAsync } = require('../middleware/errorHandler');
-const { body } = require('express-validator');
-const { authenticateToken, checkElevated } = require('../middleware/auth');
+	getDriverModelForYear,
+	validateYear,
+} = require("../models/modelPerYear");
+const {
+	createDriverValidation,
+	updateDriverValidation,
+	mongoIdValidation,
+	handleValidationErrors,
+	yearValidation,
+} = require("../middleware/validation");
+const { checkRole } = require("../middleware/rbac");
+const { AppError, catchAsync } = require("../middleware/errorHandler");
+const { body } = require("express-validator");
+const { authenticateToken, checkElevated } = require("../middleware/auth");
 
 const router = express.Router();
 
-// Get all drivers for a specific year
-router.get('/:year',
-    authenticateToken,
-    yearValidation,
-    catchAsync(async (req, res) => {
-        const year = req.params.year;
-        const Driver = getDriverModelForYear(year);
-        
-        const { category, sort = 'name', order = 'asc' } = req.query;
-        
-        let query = {};
-        if (category && ['M', 'JS', 'I'].includes(category)) {
-            query.categories = category;
-        }
-        
-        const sortOrder = order === 'desc' ? -1 : 1;
-        const sortOptions = {};
-        if (['name', 'value', 'points'].includes(sort)) {
-            sortOptions[sort] = sortOrder;
-        } else {
-            sortOptions.name = 1; // Default sort
-        }
-        
-        const drivers = await Driver.find(query)
-            .select('-__v')
-            .sort(sortOptions);
-            
-        res.status(200).json({
-            success: true,
-            year: parseInt(year),
-            count: drivers.length,
-            drivers
-        });
-    })
+router.get(
+	"/:year",
+	authenticateToken,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const Driver = getDriverModelForYear(year);
+
+		const { category, sort = "name", order = "asc" } = req.query;
+
+		let query = {};
+		if (category && ["M", "JS", "I"].includes(category)) {
+			query.categories = category;
+		}
+
+		const sortOrder = order === "desc" ? -1 : 1;
+		const sortOptions = {};
+		if (["name", "value", "points"].includes(sort)) {
+			sortOptions[sort] = sortOrder;
+		} else {
+			sortOptions.name = 1;
+		}
+
+		const drivers = await Driver.find(query)
+			.select("-__v")
+			.sort(sortOptions);
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			count: drivers.length,
+			drivers,
+		});
+	})
 );
 
-router.get('/:year/:id',
-    authenticateToken,
-    yearValidation,
-    mongoIdValidation(),
-    catchAsync(async (req, res) => {
-        const { year, id } = req.params;
-        const Driver = getDriverModelForYear(year);
-        
-        const driver = await Driver.findById(id).select('-__v');
-        
-        if (!driver) {
-            throw new AppError('Driver not found', 404);
-        }
-        
-        res.status(200).json({
-            success: true,
-            year: parseInt(year),
-            driver
-        });
-    })
+router.get(
+	"/:year/:id",
+	authenticateToken,
+	yearValidation,
+	mongoIdValidation(),
+	catchAsync(async (req, res) => {
+		const { year, id } = req.params;
+		const Driver = getDriverModelForYear(year);
+
+		const driver = await Driver.findById(id).select("-__v");
+
+		if (!driver) {
+			throw new AppError("Driver not found", 404);
+		}
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			driver,
+		});
+	})
 );
 
-// Create a new driver
-router.post('/:year',
-    authenticateToken,
-    checkRole('admin'),
-    checkElevated,
-    yearValidation,
-    createDriverValidation,
-    catchAsync(async (req, res) => {
-        const year = req.params.year;
-        const Driver = getDriverModelForYear(year);
-        const { name, value = 0, categories, imageURL, description } = req.body;
+router.post(
+	"/:year",
+	authenticateToken,
+	checkRole("admin"),
+	checkElevated,
+	yearValidation,
+	createDriverValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const Driver = getDriverModelForYear(year);
+		const { name, value = 0, categories, imageURL, description } = req.body;
 
-        const trimmedName = name.trim();
+		const trimmedName = name.trim();
 
-        // Check for existing driver with same name (case-insensitive)
-        const existingDriver = await Driver.findOne({
-            name: { $regex: new RegExp(`^${trimmedName}$`, 'i') }
-        });
+		const existingDriver = await Driver.findOne({
+			name: { $regex: new RegExp(`^${trimmedName}$`, "i") },
+		});
 
-        if (existingDriver) {
-            throw new AppError('A driver with this name already exists for this year', 409);
-        }
+		if (existingDriver) {
+			throw new AppError(
+				"A driver with this name already exists for this year",
+				409
+			);
+		}
 
-        const newDriver = new Driver({
-            name: trimmedName,
-            value,
-            categories,
-            imageURL,
-            description
-        });
+		const newDriver = new Driver({
+			name: trimmedName,
+			value,
+			categories,
+			imageURL,
+			description,
+		});
 
-        await newDriver.save();
+		await newDriver.save();
 
-        res.status(201).json({
-            success: true,
-            message: 'Driver created successfully',
-            year: parseInt(year),
-            driver: {
-                id: newDriver._id,
-                name: newDriver.name,
-                value: newDriver.value,
-                points: newDriver.points,
-                categories: newDriver.categories,
-                imageURL: newDriver.imageURL,
-                description: newDriver.description
-            }
-        });
-    })
+		res.status(201).json({
+			success: true,
+			message: "Driver created successfully",
+			year: parseInt(year),
+			driver: {
+				id: newDriver._id,
+				name: newDriver.name,
+				value: newDriver.value,
+				points: newDriver.points,
+				categories: newDriver.categories,
+				imageURL: newDriver.imageURL,
+				description: newDriver.description,
+			},
+		});
+	})
 );
 
-// Update a current driver
-router.put('/:year/:id',
-    authenticateToken,
-    checkRole('admin'),
-    checkElevated,
-    yearValidation,
-    mongoIdValidation(),
-    updateDriverValidation,
-    catchAsync(async (req, res) => {
-        const { year, id } = req.params;
-        const updates = req.body;
-        const Driver = getDriverModelForYear(year);
+router.put(
+	"/:year/:id",
+	authenticateToken,
+	checkRole("admin"),
+	checkElevated,
+	yearValidation,
+	mongoIdValidation(),
+	updateDriverValidation,
+	catchAsync(async (req, res) => {
+		const { year, id } = req.params;
+		const updates = req.body;
+		const Driver = getDriverModelForYear(year);
 
-        const allowedUpdates = ['name', 'value', 'points', 'categories', 'imageURL', 'description'];
-        const actualUpdates = Object.keys(updates).filter(key => allowedUpdates.includes(key));
+		const allowedUpdates = [
+			"name",
+			"value",
+			"points",
+			"categories",
+			"imageURL",
+			"description",
+		];
+		const actualUpdates = Object.keys(updates).filter((key) =>
+			allowedUpdates.includes(key)
+		);
 
-        if (actualUpdates.length === 0) {
-            throw new AppError('No valid fields provided for updates', 400);
-        }
+		if (actualUpdates.length === 0) {
+			throw new AppError("No valid fields provided for updates", 400);
+		}
 
-        // Check if driver exists
-        const driver = await Driver.findById(id);
-        if (!driver) {
-            throw new AppError('Driver not found', 404);
-        }
+		const driver = await Driver.findById(id);
+		if (!driver) {
+			throw new AppError("Driver not found", 404);
+		}
 
-        // Check for name uniqueness if name is being updated
-        if (updates.name) {
-            updates.name = updates.name.trim();
+		if (updates.name) {
+			updates.name = updates.name.trim();
 
-            const existingDriver = await Driver.findOne({
-                name: { $regex: new RegExp(`^${updates.name}$`, 'i') },
-                _id: { $ne: id }
-            });
+			const existingDriver = await Driver.findOne({
+				name: { $regex: new RegExp(`^${updates.name}$`, "i") },
+				_id: { $ne: id },
+			});
 
-            if (existingDriver) {
-                throw new AppError('A driver with this name already exists for this year', 409);
-            }
-        }
+			if (existingDriver) {
+				throw new AppError(
+					"A driver with this name already exists for this year",
+					409
+				);
+			}
+		}
 
-        // Build filtered updates object
-        const filteredUpdates = {};
-        actualUpdates.forEach(key => {
-            filteredUpdates[key] = updates[key];
-        });
+		const filteredUpdates = {};
+		actualUpdates.forEach((key) => {
+			filteredUpdates[key] = updates[key];
+		});
 
-        const updatedDriver = await Driver.findByIdAndUpdate(
-            id,
-            { $set: filteredUpdates },
-            { new: true, runValidators: true }
-        ).select('-__v');
+		const updatedDriver = await Driver.findByIdAndUpdate(
+			id,
+			{ $set: filteredUpdates },
+			{ new: true, runValidators: true }
+		).select("-__v");
 
-        res.status(200).json({
-            success: true,
-            message: 'Driver updated successfully',
-            year: parseInt(year),
-            driver: updatedDriver
-        });
-    })
+		res.status(200).json({
+			success: true,
+			message: "Driver updated successfully",
+			year: parseInt(year),
+			driver: updatedDriver,
+		});
+	})
 );
 
-// Delete a current driver
-router.delete('/:year/:id',
-    authenticateToken,
-    checkRole('admin'),
-    checkElevated,
-    yearValidation,
-    mongoIdValidation(),
-    catchAsync(async (req, res) => {
-        const { year, id } = req.params;
-        const Driver = getDriverModelForYear(year);
+router.delete(
+	"/:year/:id",
+	authenticateToken,
+	checkRole("admin"),
+	checkElevated,
+	yearValidation,
+	mongoIdValidation(),
+	catchAsync(async (req, res) => {
+		const { year, id } = req.params;
+		const Driver = getDriverModelForYear(year);
 
-        const driverToDelete = await Driver.findById(id);
-        if (!driverToDelete) {
-            throw new AppError('Driver not found', 404);
-        }
+		const driverToDelete = await Driver.findById(id);
+		if (!driverToDelete) {
+			throw new AppError("Driver not found", 404);
+		}
 
-        await Driver.findByIdAndDelete(id);
+		await Driver.findByIdAndDelete(id);
 
-        res.status(200).json({
-            success: true,
-            message: 'Driver deleted successfully',
-            year: parseInt(year),
-            deletedDriver: {
-                id: driverToDelete._id,
-                name: driverToDelete.name,
-                categories: driverToDelete.categories,
-                value: driverToDelete.value,
-                points: driverToDelete.points
-            }
-        });
-    })
+		res.status(200).json({
+			success: true,
+			message: "Driver deleted successfully",
+			year: parseInt(year),
+			deletedDriver: {
+				id: driverToDelete._id,
+				name: driverToDelete.name,
+				categories: driverToDelete.categories,
+				value: driverToDelete.value,
+				points: driverToDelete.points,
+			},
+		});
+	})
 );
 
-router.get('/:year/stats',
-    authenticateToken,
-    yearValidation,
-    catchAsync(async (req, res) => {
-        const year = req.params.year;
-        const Driver = getDriverModelForYear(year);
-        
-        const [
-            totalDrivers,
-            totalValueAgg,
-            totalPointsAgg,
-            categoryStats
-        ] = await Promise.all([
-            Driver.countDocuments(),
-            Driver.aggregate([
-                { $group: { _id: null, total: { $sum: '$value' } } }
-            ]),
-            Driver.aggregate([
-                { $group: { _id: null, total: { $sum: '$points' } } }
-            ]),
-            Driver.aggregate([
-                { $unwind: '$categories' },
-                { 
-                    $group: { 
-                        _id: '$categories', 
-                        count: { $sum: 1 },
-                        totalValue: { $sum: '$value' },
-                        totalPoints: { $sum: '$points' }
-                    } 
-                },
-                { $sort: { _id: 1 } }
-            ])
-        ]);
+router.get(
+	"/:year/stats",
+	authenticateToken,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const Driver = getDriverModelForYear(year);
 
-        res.status(200).json({
-            success: true,
-            year: parseInt(year),
-            stats: {
-                drivers: {
-                    total: totalDrivers
-                },
-                value: {
-                    total: totalValueAgg[0]?.total || 0
-                },
-                points: {
-                    total: totalPointsAgg[0]?.total || 0
-                },
-                categories: categoryStats.reduce((acc, cat) => {
-                    acc[cat._id] = {
-                        count: cat.count,
-                        totalValue: cat.totalValue,
-                        totalPoints: cat.totalPoints
-                    };
-                    return acc;
-                }, {})
-            }
-        });
-    })
+		const [totalDrivers, totalValueAgg, totalPointsAgg, categoryStats] =
+			await Promise.all([
+				Driver.countDocuments(),
+				Driver.aggregate([
+					{ $group: { _id: null, total: { $sum: "$value" } } },
+				]),
+				Driver.aggregate([
+					{ $group: { _id: null, total: { $sum: "$points" } } },
+				]),
+				Driver.aggregate([
+					{ $unwind: "$categories" },
+					{
+						$group: {
+							_id: "$categories",
+							count: { $sum: 1 },
+							totalValue: { $sum: "$value" },
+							totalPoints: { $sum: "$points" },
+						},
+					},
+					{ $sort: { _id: 1 } },
+				]),
+			]);
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			stats: {
+				drivers: {
+					total: totalDrivers,
+				},
+				value: {
+					total: totalValueAgg[0]?.total || 0,
+				},
+				points: {
+					total: totalPointsAgg[0]?.total || 0,
+				},
+				categories: categoryStats.reduce((acc, cat) => {
+					acc[cat._id] = {
+						count: cat.count,
+						totalValue: cat.totalValue,
+						totalPoints: cat.totalPoints,
+					};
+					return acc;
+				}, {}),
+			},
+		});
+	})
 );
 
-router.get('/',
-    authenticateToken,
-    catchAsync(async (req, res) => {
-        const { getAvailableYears } = require('../models/modelPerYear');
-        const years = await getAvailableYears();
-        
-        // Get basic stats for each year with driver data
-        const yearStats = await Promise.all(
-            years.map(async (year) => {
-                try {
-                    const Driver = getDriverModelForYear(year);
-                    const count = await Driver.countDocuments();
-                    return { year, driverCount: count };
-                } catch (error) {
-                    return { year, driverCount: 0, error: error.message };
-                }
-            })
-        );
+router.get(
+	"/",
+	authenticateToken,
+	catchAsync(async (req, res) => {
+		const { getAvailableYears } = require("../models/modelPerYear");
+		const years = await getAvailableYears();
 
-        res.status(200).json({
-            success: true,
-            message: 'Available years with driver data',
-            years: yearStats.filter(y => y.driverCount > 0)
-        });
-    })
+		const yearStats = await Promise.all(
+			years.map(async (year) => {
+				try {
+					const Driver = getDriverModelForYear(year);
+					const count = await Driver.countDocuments();
+					return { year, driverCount: count };
+				} catch (error) {
+					return { year, driverCount: 0, error: error.message };
+				}
+			})
+		);
+
+		res.status(200).json({
+			success: true,
+			message: "Available years with driver data",
+			years: yearStats.filter((y) => y.driverCount > 0),
+		});
+	})
 );
 
 module.exports = router;
