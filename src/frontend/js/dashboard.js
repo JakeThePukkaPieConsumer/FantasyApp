@@ -1,6 +1,6 @@
 import authModule from "./modules/auth.js";
 import { createApiModules } from "./modules/api.js";
-import { loadRaceInformation } from "./modules/driverSelectionManager.js";
+import { loadRaceInformation } from "./modules/raceUtils.js";
 import notificationModule from "./modules/notification.js";
 
 class Dashboard {
@@ -143,14 +143,16 @@ class Dashboard {
 		}
 
 		const deadline = new Date(this.currentRace.submissionDeadline);
-		const formattedDateDeadline = `${String(deadline.getDate()).padStart(
+		const formatted = `${String(deadline.getDate()).padStart(
 			2,
 			"0"
 		)}/${String(deadline.getMonth() + 1).padStart(2, "0")}`;
 
-		const nextRaceDate = (document.getElementById(
-			"next-race-date-stat"
-		).textContent = formattedDateDeadline);
+		const nextRaceDate = document.getElementById("next-race-date-stat");
+		if (nextRaceDate) {
+			nextRace.textContent =
+				this.currentRace.submissionDeadline || "Unknown Date";
+		}
 
 		const welcomeTitle = document.querySelector(".dashboard-welcome h2");
 		if (welcomeTitle) {
