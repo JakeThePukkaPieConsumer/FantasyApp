@@ -142,18 +142,6 @@ class Dashboard {
 			nextRace.textContent = this.currentRace.name || "Unknown Race";
 		}
 
-		const deadline = new Date(this.currentRace.submissionDeadline);
-		const formatted = `${String(deadline.getDate()).padStart(
-			2,
-			"0"
-		)}/${String(deadline.getMonth() + 1).padStart(2, "0")}`;
-
-		const nextRaceDate = document.getElementById("next-race-date-stat");
-		if (nextRaceDate) {
-			nextRace.textContent =
-				this.currentRace.submissionDeadline || "Unknown Date";
-		}
-
 		const welcomeTitle = document.querySelector(".dashboard-welcome h2");
 		if (welcomeTitle) {
 			welcomeTitle.textContent = `Welcome back, ${this.currentUser.username}!`;
