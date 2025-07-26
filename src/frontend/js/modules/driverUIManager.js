@@ -38,10 +38,6 @@ class DriverUIManager {
 			}
 		});
 
-		this.setupButton("show-history-btn", async () => {
-			await this.showRosterHistory();
-		});
-
 		// Filter buttons
 		document.querySelectorAll(".filter-btn").forEach((btn) => {
 			btn.addEventListener("click", (e) => {
@@ -818,36 +814,6 @@ class DriverUIManager {
 			this.notificationModule.error(
 				"An unexpected error occurred. Please try again."
 			);
-		}
-	}
-
-	async showRosterHistory() {
-		const currentUser = this.selectionManager.getCurrentUser();
-		if (!currentUser?.id) return;
-
-		try {
-			const result =
-				await this.selectionManager.apiModules.rosters.getUserRosters(
-					this.selectionManager.currentYear,
-					currentUser.id
-				);
-
-			const rosters = result.success ? result.data.rosters || [] : [];
-
-			if (rosters.length === 0) {
-				this.notificationModule.info(
-					"No roster history found for this year."
-				);
-				return;
-			}
-
-			console.log("Roster History:", rosters);
-			this.notificationModule.info(
-				`Found ${rosters.length} previous roster(s). Check console for details.`
-			);
-		} catch (error) {
-			console.error("Error showing roster history:", error);
-			this.notificationModule.error("Failed to load roster history");
 		}
 	}
 

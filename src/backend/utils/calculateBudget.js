@@ -1,27 +1,19 @@
-// src/backend/utils/calculateBudget.js
 const mongoose = require("mongoose");
 const {
 	getDriverModelForYear,
 	getUserModelForYear,
 } = require("../models/modelPerYear");
 
-/**
- * Validate MongoDB ObjectId
- */
 function isValidObjectId(id) {
 	return mongoose.Types.ObjectId.isValid(id);
 }
 
-/**
- * Calculate the total budget used for a list of drivers
- */
 async function calculateDriversBudget(driverIds, year) {
 	try {
 		if (!Array.isArray(driverIds) || driverIds.length === 0) {
 			return 0;
 		}
 
-		// Validate all driver IDs
 		const invalidIds = driverIds.filter((id) => !isValidObjectId(id));
 		if (invalidIds.length > 0) {
 			throw new Error(`Invalid driver IDs: ${invalidIds.join(", ")}`);
@@ -29,14 +21,12 @@ async function calculateDriversBudget(driverIds, year) {
 
 		const Driver = getDriverModelForYear(year);
 
-		// Get all drivers by their IDs
 		const drivers = await Driver.find({
 			_id: { $in: driverIds },
 		})
 			.select("value")
 			.lean();
 
-		// Check if all drivers were found
 		if (drivers.length !== driverIds.length) {
 			const foundIds = drivers.map((d) => d._id.toString());
 			const missingIds = driverIds.filter(
@@ -45,7 +35,6 @@ async function calculateDriversBudget(driverIds, year) {
 			throw new Error(`Drivers not found: ${missingIds.join(", ")}`);
 		}
 
-		// Calculate total value
 		const totalValue = drivers.reduce(
 			(sum, driver) => sum + (driver.value || 0),
 			0
@@ -58,11 +47,10 @@ async function calculateDriversBudget(driverIds, year) {
 	}
 }
 
-/**
- * Validate that the user has sufficient budget for selected drivers
- */
-async function validateUserBudget(userId, driverIds, year) {
+async function validateUserBudget(rosterData, year) {
 	try {
+		const { user: userId, drivers: driverIds } = rosterData;
+
 		if (!isValidObjectId(userId)) {
 			throw new Error("Invalid user ID");
 		}
@@ -92,9 +80,118 @@ async function validateUserBudget(userId, driverIds, year) {
 	}
 }
 
-/**
- * Validate driver categories to ensure required categories are present
- */
+async function updateUserBudget(userId, driverIds, year, session = null) {
+	try {
+		if (!isValidObjectId(userId)) {
+			throw new Error("Invalid user ID");
+		}
+
+		const User = getUserModelForYear(year);
+		const totalDriverValue = await calculateDriversBudget(driverIds, year);
+
+		const updatedUser = await User.findByIdAndUpdate(
+			userId,
+			{ $inc: { budget: -totalDriverValue } },
+			{ new: true, session }
+		).select("budget");
+
+		if (!updatedUser) {
+			throw new Error("User not found");
+		}
+
+		return {
+			success: true,
+			deductedAmount: totalDriverValue,
+			remainingBudget: updatedUser.budget,
+		};
+	} catch (error) {
+		console.error("Error updating user budget:", error);
+		throw error;
+	}
+}
+
+async function restoreUserBudget(userId, driverIds, year, session = null) {
+	try {
+		if (!isValidObjectId(userId)) {
+			throw new Error("Invalid user ID");
+		}
+
+		const User = getUserModelForYear(year);
+		const totalDriverValue = await calculateDriversBudget(driverIds, year);
+
+		const updatedUser = await User.findByIdAndUpdate(
+			userId,
+			{ $inc: { budget: totalDriverValue } },
+			{ new: true, session }
+		).select("budget");
+
+		if (!updatedUser) {
+			throw new Error("User not found");
+		}
+
+		return {
+			success: true,
+			restoredAmount: totalDriverValue,
+			remainingBudget: updatedUser.budget,
+		};
+	} catch (error) {
+		console.error("Error restoring user budget:", error);
+		throw error;
+	}
+}
+
+async function handleBudgetUpdate(
+	userId,
+	oldDriverIds,
+	newDriverIds,
+	year,
+	session = null
+) {
+	try {
+		const [oldBudget, newBudget] = await Promise.all([
+			calculateDriversBudget(oldDriverIds, year),
+			calculateDriversBudget(newDriverIds, year),
+		]);
+
+		const budgetDifference = newBudget - oldBudget;
+
+		if (budgetDifference === 0) {
+			return {
+				success: true,
+				budgetChange: 0,
+				message: "No budget change required",
+			};
+		}
+
+		const User = getUserModelForYear(year);
+
+		const updatedUser = await User.findByIdAndUpdate(
+			userId,
+			{ $inc: { budget: -budgetDifference } },
+			{ new: true, session }
+		).select("budget");
+
+		if (!updatedUser) {
+			throw new Error("User not found");
+		}
+
+		return {
+			success: true,
+			budgetChange: budgetDifference,
+			remainingBudget: updatedUser.budget,
+			message:
+				budgetDifference > 0
+					? `Deducted £${budgetDifference.toFixed(2)} from budget`
+					: `Restored £${Math.abs(budgetDifference).toFixed(
+							2
+					  )} to budget`,
+		};
+	} catch (error) {
+		console.error("Error handling budget update:", error);
+		throw error;
+	}
+}
+
 async function validateDriverCategories(
 	driverIds,
 	year,
@@ -110,7 +207,6 @@ async function validateDriverCategories(
 			};
 		}
 
-		// Validate all driver IDs
 		const invalidIds = driverIds.filter((id) => !isValidObjectId(id));
 		if (invalidIds.length > 0) {
 			throw new Error(`Invalid driver IDs: ${invalidIds.join(", ")}`);
@@ -123,7 +219,6 @@ async function validateDriverCategories(
 			.select("categories")
 			.lean();
 
-		// Check if all drivers were found
 		if (drivers.length !== driverIds.length) {
 			const foundIds = drivers.map((d) => d._id.toString());
 			const missingIds = driverIds.filter(
@@ -132,7 +227,6 @@ async function validateDriverCategories(
 			throw new Error(`Drivers not found: ${missingIds.join(", ")}`);
 		}
 
-		// Get all unique categories from selected drivers
 		const presentCategories = new Set();
 		drivers.forEach((driver) => {
 			if (Array.isArray(driver.categories)) {
@@ -142,7 +236,6 @@ async function validateDriverCategories(
 			}
 		});
 
-		// Check which required categories are missing
 		const missingCategories = requiredCategories.filter(
 			(category) => !presentCategories.has(category)
 		);
@@ -159,14 +252,10 @@ async function validateDriverCategories(
 	}
 }
 
-/**
- * Comprehensive roster validation
- */
 async function validateRosterData(rosterData, year) {
 	const { user: userId, drivers: driverIds, budgetUsed } = rosterData;
 
 	try {
-		// Basic input validation
 		if (!userId || !isValidObjectId(userId)) {
 			throw new Error("Valid user ID is required");
 		}
@@ -182,30 +271,26 @@ async function validateRosterData(rosterData, year) {
 			);
 		}
 
-		// Check for duplicate drivers
 		const uniqueDrivers = new Set(driverIds.map((id) => id.toString()));
 		if (uniqueDrivers.size !== driverIds.length) {
 			throw new Error("Duplicate drivers are not allowed");
 		}
 
-		// Run validations in parallel
 		const [budgetValidation, categoryValidation, calculatedBudget] =
 			await Promise.all([
-				validateUserBudget(userId, driverIds, year),
+				validateUserBudget(rosterData, year),
 				validateDriverCategories(driverIds, year),
 				calculateDriversBudget(driverIds, year),
 			]);
 
 		const errors = [];
 
-		// Budget validation
 		if (!budgetValidation.isValid) {
 			errors.push(
 				`Budget exceeded by £${budgetValidation.exceedsBy.toFixed(2)}`
 			);
 		}
 
-		// Category validation
 		if (!categoryValidation.isValid) {
 			errors.push(
 				`Missing required categories: ${categoryValidation.missingCategories.join(
@@ -214,7 +299,6 @@ async function validateRosterData(rosterData, year) {
 			);
 		}
 
-		// Budget mismatch check (allow small floating point differences)
 		const budgetMismatch =
 			Math.abs(calculatedBudget - (budgetUsed || 0)) > 0.01;
 		if (budgetMismatch && budgetUsed !== undefined) {
@@ -239,9 +323,6 @@ async function validateRosterData(rosterData, year) {
 	}
 }
 
-/**
- * Validate maximum drivers constraint
- */
 function validateMaxDrivers(driverIds, maxDrivers = 6) {
 	if (!Array.isArray(driverIds)) {
 		return {
@@ -263,9 +344,6 @@ function validateMaxDrivers(driverIds, maxDrivers = 6) {
 	};
 }
 
-/**
- * Get driver summary for roster
- */
 async function getDriverSummary(driverIds, year) {
 	try {
 		if (!Array.isArray(driverIds) || driverIds.length === 0) {
@@ -318,5 +396,8 @@ module.exports = {
 	validateRosterData,
 	validateMaxDrivers,
 	getDriverSummary,
+	updateUserBudget,
+	restoreUserBudget,
+	handleBudgetUpdate,
 	isValidObjectId,
 };
