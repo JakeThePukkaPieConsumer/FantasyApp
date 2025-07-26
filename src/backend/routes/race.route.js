@@ -126,4 +126,171 @@ router.get(
 	})
 );
 
+/**
+ * @route GET /:year/stats
+ * @description Get aggregate race statistics for a given year
+ * @param {string} year - Year to get stats for
+ * @access Protected
+ * @returns {Object} JSON with success, year, and stats object
+ */
+router.get(
+	"/:year/stats",
+	authenticateToken,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const Race = getRaceModelForYear(year);
+
+		const [
+			totalRaces,
+			statusStats,
+			lockedRaces,
+			upcomingRaces,
+			completedRaces,
+		] = await Promise.all([
+			Race.countDocuments(),
+			Race.aggregate([
+				{
+					$group: {
+						_id: "$status",
+						count: { $sum: 1 },
+					},
+				},
+			]),
+			Race.countDocuments({ isLocked: true }),
+			Race.countDocuments({ 
+				status: "scheduled",
+				submissionDeadline: { $gt: new Date() }
+			}),
+			Race.countDocuments({ status: "completed" }),
+		]);
+
+		// Convert status stats to object
+		const statusCounts = statusStats.reduce((acc, stat) => {
+			acc[stat._id] = stat.count;
+			return acc;
+		}, {});
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			stats: {
+				races: {
+					total: totalRaces,
+					scheduled: statusCounts.scheduled || 0,
+					active: statusCounts.active || 0,
+					completed: statusCounts.completed || 0,
+				},
+				locked: lockedRaces,
+				upcoming: upcomingRaces,
+				finished: completedRaces,
+			},
+		});
+	})
+);
+
+/**
+ * @route GET /:year/upcoming
+ * @description Get upcoming races (not yet past submission deadline)
+ * @param {string} year - Year to query
+ * @access Protected
+ * @returns {Object} JSON with success, year, count, and races array
+ */
+router.get(
+	"/:year/upcoming",
+	authenticateToken,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const Race = getRaceModelForYear(year);
+
+		const upcomingRaces = await Race.find({
+			submissionDeadline: { $gt: new Date() },
+		})
+			.select("-__v")
+			.sort({ submissionDeadline: 1 });
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			count: upcomingRaces.length,
+			races: upcomingRaces,
+		});
+	})
+);
+
+/**
+ * @route GET /:year/current
+ * @description Get the current active race (closest upcoming or currently active)
+ * @param {string} year - Year to query
+ * @access Protected
+ * @returns {Object} JSON with success, year, and race object (null if none)
+ */
+router.get(
+	"/:year/current",
+	authenticateToken,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const Race = getRaceModelForYear(year);
+
+		// First try to find an active race
+		let currentRace = await Race.findOne({ status: "active" })
+			.select("-__v")
+			.sort({ roundNumber: 1 });
+
+		// If no active race, find the next upcoming race
+		if (!currentRace) {
+			currentRace = await Race.findOne({
+				status: "scheduled",
+				submissionDeadline: { $gt: new Date() },
+			})
+				.select("-__v")
+				.sort({ submissionDeadline: 1 });
+		}
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			race: currentRace,
+		});
+	})
+);
+
+/**
+ * @route GET /:year/by-round/:roundNumber
+ * @description Get a race by its round number for a given year
+ * @param {string} year - Year to query
+ * @param {number} roundNumber - Round number of the race
+ * @access Protected
+ * @returns {Object} JSON with success, year, and race object
+ * @throws {AppError} 404 if race not found, 400 if invalid round number
+ */
+router.get(
+	"/:year/by-round/:roundNumber",
+	authenticateToken,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const { year, roundNumber } = req.params;
+		const Race = getRaceModelForYear(year);
+
+		const roundNum = parseInt(roundNumber);
+		if (isNaN(roundNum) || roundNum < 1) {
+			throw new AppError("Invalid round number", 400);
+		}
+
+		const race = await Race.findOne({ roundNumber: roundNum }).select("-__v");
+
+		if (!race) {
+			throw new AppError(`Race not found for round ${roundNum}`, 404);
+		}
+
+		res.status(200).json({
+			success: true,
+			year: parseInt(year),
+			race,
+		});
+	})
+);
+
 module.exports = router;

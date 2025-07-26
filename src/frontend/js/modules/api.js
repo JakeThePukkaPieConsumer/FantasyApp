@@ -369,63 +369,345 @@ class RaceApi extends ApiModule {
 		super(authModule);
 	}
 
+	async getAvailableYears() {
+		return this.get("/api/races/");
+	}
+
 	async getRaces(year, options = {}) {
-		const {
-			status,
-			sort = "roundNumber",
-			order = "asc",
-			upcoming = false,
-			current = false,
-		} = options;
+		const { status, sort = "roundNumber", order = "asc" } = options;
 		const params = new URLSearchParams();
 
 		if (status) params.append("status", status);
 		if (sort) params.append("sort", sort);
 		if (order) params.append("order", order);
-		if (upcoming) params.append("upcoming", "true");
-		if (current) params.append("current", "true");
 
 		const queryString = params.toString();
-		const endpoint = `/api/race/${year}${
+		const endpoint = `/api/races/${year}${
 			queryString ? `?${queryString}` : ""
 		}`;
 		return this.get(endpoint);
 	}
 
-	async getUpcomingRaces(year) {
-		return this.get(`/api/race/${year}/upcoming`);
+	async getRaceById(year, raceId) {
+		return this.get(`/api/races/${year}/${raceId}`);
 	}
 
 	async getCurrentRace(year) {
-		return this.get(`/api/race/${year}/current`);
+		const result = await this.getRaces(year, {
+			sort: "submissionDeadline",
+			order: "asc",
+		});
+
+		if (!result.success) return result;
+
+		const now = new Date();
+		const currentRace = result.data.races?.find((race) => {
+			if (!race.events || race.events.length === 0) return false;
+
+			const submissionDeadline = new Date(race.submissionDeadline);
+			const raceEnd = new Date(
+				Math.max(...race.events.map((e) => new Date(e.endtime)))
+			);
+
+			return (
+				(now <= submissionDeadline && !race.isLocked) ||
+				(now >= submissionDeadline && now <= raceEnd)
+			);
+		});
+
+		return {
+			...result,
+			data: {
+				...result.data,
+				races: currentRace ? [currentRace] : [],
+				current: currentRace || null,
+			},
+		};
 	}
 
-	async getCompletedRaces(year) {
-		return this.get(`/api/race/${year}/completed`);
+	async getUpcomingRaces(year, limit = null) {
+		const result = await this.getRaces(year, {
+			sort: "submissionDeadline",
+			order: "asc",
+		});
+
+		if (!result.success) return result;
+
+		const now = new Date();
+		let upcomingRaces =
+			result.data.races?.filter((race) => {
+				if (!race.events || race.events.length === 0) return false;
+
+				const raceStart = new Date(
+					Math.min(...race.events.map((e) => new Date(e.starttime)))
+				);
+				return raceStart > now;
+			}) || [];
+
+		if (limit && upcomingRaces.length > limit) {
+			upcomingRaces = upcomingRaces.slice(0, limit);
+		}
+
+		return {
+			...result,
+			data: {
+				...result.data,
+				races: upcomingRaces,
+				count: upcomingRaces.length,
+			},
+		};
 	}
 
-	async getRaceByRound(year, roundNumber) {
-		return this.get(`/api/race/${year}/round/${roundNumber}`);
+	async getCompletedRaces(year, limit = null) {
+		const result = await this.getRaces(year, {
+			sort: "submissionDeadline",
+			order: "desc",
+		});
+
+		if (!result.success) return result;
+
+		const now = new Date();
+		let completedRaces =
+			result.data.races?.filter((race) => {
+				if (!race.events || race.events.length === 0) return false;
+
+				const raceEnd = new Date(
+					Math.max(...race.events.map((e) => new Date(e.endtime)))
+				);
+				return raceEnd < now;
+			}) || [];
+
+		if (limit && completedRaces.length > limit) {
+			completedRaces = completedRaces.slice(0, limit);
+		}
+
+		return {
+			...result,
+			data: {
+				...result.data,
+				races: completedRaces,
+				count: completedRaces.length,
+			},
+		};
 	}
 
-	async getRaceById(year, raceId) {
-		return this.get(`/api/race/${year}/${raceId}`);
+	async getSubmissionAvailableRaces(year) {
+		const result = await this.getRaces(year, {
+			sort: "submissionDeadline",
+			order: "asc",
+		});
+
+		if (!result.success) return result;
+
+		const now = new Date();
+		const availableRaces =
+			result.data.races?.filter((race) => {
+				if (race.isLocked) return false;
+
+				const submissionDeadline = new Date(race.submissionDeadline);
+				return now <= submissionDeadline;
+			}) || [];
+
+		return {
+			...result,
+			data: {
+				...result.data,
+				races: availableRaces,
+				count: availableRaces.length,
+			},
+		};
 	}
 
-	async getRaceStats(year) {
-		return this.get(`/api/race/${year}/stats`);
+	async getNextSubmissionRace(year) {
+		const result = await this.getSubmissionAvailableRaces(year);
+
+		if (!result.success) return result;
+
+		const nextRace = result.data.races?.[0] || null;
+
+		return {
+			...result,
+			data: {
+				...result.data,
+				races: nextRace ? [nextRace] : [],
+				next: nextRace,
+			},
+		};
 	}
 
-	async getRacesWithDeadlines(year) {
-		return this.get(`/api/race/${year}/deadlines`);
+	async getRaceSchedule(year) {
+		const result = await this.getRaces(year, {
+			sort: "roundNumber",
+			order: "asc",
+		});
+
+		if (!result.success) return result;
+
+		const now = new Date();
+		const enrichedRaces =
+			result.data.races?.map((race) => {
+				const submissionDeadline = new Date(race.submissionDeadline);
+				const raceStart =
+					race.events?.length > 0
+						? new Date(
+								Math.min(
+									...race.events.map(
+										(e) => new Date(e.starttime)
+									)
+								)
+						  )
+						: null;
+				const raceEnd =
+					race.events?.length > 0
+						? new Date(
+								Math.max(
+									...race.events.map(
+										(e) => new Date(e.endtime)
+									)
+								)
+						  )
+						: null;
+
+				let status = "unknown";
+				let canSubmit = false;
+
+				if (race.isLocked) {
+					status = "locked";
+				} else if (raceEnd && now > raceEnd) {
+					status = "completed";
+				} else if (
+					raceStart &&
+					now >= raceStart &&
+					raceEnd &&
+					now <= raceEnd
+				) {
+					status = "ongoing";
+				} else if (now <= submissionDeadline) {
+					status = "accepting-submissions";
+					canSubmit = true;
+				} else if (
+					raceStart &&
+					now > submissionDeadline &&
+					now < raceStart
+				) {
+					status = "submissions-closed";
+				} else {
+					status = "upcoming";
+				}
+
+				return {
+					...race,
+					status,
+					canSubmit,
+					timeUntilSubmissionDeadline:
+						submissionDeadline > now ? submissionDeadline - now : 0,
+					timeUntilRaceStart:
+						raceStart && raceStart > now ? raceStart - now : 0,
+					isDeadlineSoon:
+						submissionDeadline > now &&
+						submissionDeadline - now < 24 * 60 * 60 * 1000,
+				};
+			}) || [];
+
+		return {
+			...result,
+			data: {
+				...result.data,
+				races: enrichedRaces,
+				schedule: {
+					total: enrichedRaces.length,
+					accepting: enrichedRaces.filter((r) => r.canSubmit).length,
+					completed: enrichedRaces.filter(
+						(r) => r.status === "completed"
+					).length,
+					upcoming: enrichedRaces.filter(
+						(r) => r.status === "upcoming"
+					).length,
+					ongoing: enrichedRaces.filter((r) => r.status === "ongoing")
+						.length,
+				},
+			},
+		};
 	}
 
-	async checkSubmissionStatus(year, raceId) {
-		return this.get(`/api/race/${year}/${raceId}/submission-status`);
+	async checkSubmissionEligibility(year, raceId) {
+		const result = await this.getRaceById(year, raceId);
+
+		if (!result.success) return result;
+
+		const race = result.data.race;
+		const now = new Date();
+		const submissionDeadline = new Date(race.submissionDeadline);
+
+		const eligible = !race.isLocked && now <= submissionDeadline;
+		const timeRemaining =
+			submissionDeadline > now ? submissionDeadline - now : 0;
+
+		return {
+			...result,
+			data: {
+				race,
+				eligible,
+				locked: race.isLocked,
+				deadlinePassed: now > submissionDeadline,
+				timeRemaining,
+				hoursRemaining: Math.floor(timeRemaining / (1000 * 60 * 60)),
+				deadlineSoon:
+					timeRemaining > 0 && timeRemaining < 24 * 60 * 60 * 1000,
+			},
+		};
 	}
 
-	async getRaceCalendar(year) {
-		return this.get(`/api/race/${year}/calendar`);
+	async getRacesWithDeadlines(year, onlyUpcoming = true) {
+		const result = await this.getRaces(year, {
+			sort: "submissionDeadline",
+			order: "asc",
+		});
+
+		if (!result.success) return result;
+
+		const now = new Date();
+		let racesWithDeadlines =
+			result.data.races?.map((race) => {
+				const submissionDeadline = new Date(race.submissionDeadline);
+				const timeUntilDeadline = submissionDeadline - now;
+
+				return {
+					_id: race._id,
+					name: race.name,
+					roundNumber: race.roundNumber,
+					location: race.location,
+					submissionDeadline: race.submissionDeadline,
+					isLocked: race.isLocked,
+					timeUntilDeadline,
+					deadlinePassed: timeUntilDeadline <= 0,
+					canSubmit: !race.isLocked && timeUntilDeadline > 0,
+					urgency:
+						timeUntilDeadline > 0 &&
+						timeUntilDeadline < 24 * 60 * 60 * 1000
+							? "high"
+							: timeUntilDeadline > 0 &&
+							  timeUntilDeadline < 72 * 60 * 60 * 1000
+							? "medium"
+							: "low",
+				};
+			}) || [];
+
+		if (onlyUpcoming) {
+			racesWithDeadlines = racesWithDeadlines.filter(
+				(race) => !race.deadlinePassed
+			);
+		}
+
+		return {
+			...result,
+			data: {
+				races: racesWithDeadlines,
+				count: racesWithDeadlines.length,
+				urgent: racesWithDeadlines.filter((r) => r.urgency === "high")
+					.length,
+			},
+		};
 	}
 
 	async updateRace(year, raceId, raceData, elevatedToken) {
@@ -437,30 +719,8 @@ class RaceApi extends ApiModule {
 
 	async toggleRaceLock(year, raceId, isLocked, elevatedToken) {
 		return this.put(
-			`/api/race/${year}/${raceId}/lock`,
+			`/api/races/${year}/${raceId}/lock`,
 			{ isLocked },
-			{
-				includeAuth: false,
-				headers: { Authorization: `Bearer ${elevatedToken}` },
-			}
-		);
-	}
-
-	async updateRaceResults(year, raceId, results, elevatedToken) {
-		return this.put(
-			`/api/race/${year}/${raceId}/results`,
-			{ results },
-			{
-				includeAuth: false,
-				headers: { Authorization: `Bearer ${elevatedToken}` },
-			}
-		);
-	}
-
-	async batchUpdateRaces(year, updates, elevatedToken) {
-		return this.put(
-			`/api/race/${year}/batch-update`,
-			{ updates },
 			{
 				includeAuth: false,
 				headers: { Authorization: `Bearer ${elevatedToken}` },
