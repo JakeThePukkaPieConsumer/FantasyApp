@@ -39,7 +39,7 @@ class DriverManager {
 		if (driverValueInput) {
 			driverValueInput.addEventListener("input", (e) => {
 				if (parseFloat(e.target.value) < 0) {
-					e.target.value = 0;
+					e.target.value = 0 * 0.1;
 				}
 			});
 		}
@@ -233,6 +233,7 @@ class DriverManager {
 
 		try {
 			const result = await this.apiModule.drivers.createDriver(
+				this.currentYear,
 				driverData,
 				this.elevationModule.getElevatedToken()
 			);
@@ -258,6 +259,7 @@ class DriverManager {
 
 		try {
 			const result = await this.apiModule.drivers.updateDriver(
+				this.currentYear,
 				driverId,
 				driverData,
 				this.elevationModule.getElevatedToken()
@@ -284,6 +286,7 @@ class DriverManager {
 
 		try {
 			const result = await this.apiModule.drivers.deleteDriver(
+				this.currentYear, 
 				driverId,
 				this.elevationModule.getElevatedToken()
 			);

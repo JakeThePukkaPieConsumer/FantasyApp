@@ -67,7 +67,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/drivers", driverRoutes);
-app.use("/api/rosters", rosterRoutes);
+app.use("/api/roster", rosterRoutes);
 app.use("/api/admin/users", userRoutes);
 app.use("/api/years", yearRoutes);
 

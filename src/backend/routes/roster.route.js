@@ -200,7 +200,6 @@ router.put(
 		const Roster = getRosterModelForYear(year);
 		const Driver = getDriverModelForYear(year);
 		const User = getUserModelForYear(year);
-		const Race = getRaceModelForYear(year);
 
 		const allowedUpdates = ["drivers", "budgetUsed", "pointsEarned"];
 		const actualUpdates = Object.keys(updates).filter((key) =>
@@ -214,10 +213,6 @@ router.put(
 		const roster = await Roster.findById(id).populate("race");
 		if (!roster) {
 			throw new AppError("Roster not found", 404);
-		}
-
-		if (roster.race.isLocked && req.user.role !== "admin") {
-			throw new AppError("Cannot update roster for locked race", 403);
 		}
 
 		if (
