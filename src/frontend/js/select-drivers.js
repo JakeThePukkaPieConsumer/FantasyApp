@@ -13,7 +13,6 @@ class DriverSelection {
 		this.notificationModule = notificationModule;
 		this.currentYear = this.authModule.getCurrentYear();
 
-		// Initialize managers
 		this.selectionManager = new DriverSelectionManager(
 			this.apiModules,
 			this.authModule,

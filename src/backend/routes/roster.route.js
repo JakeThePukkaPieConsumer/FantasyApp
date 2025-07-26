@@ -162,7 +162,7 @@ router.post(
 			throw new AppError("User already has a roster for this race", 409);
 		}
 
-		const validation = await validateRosterData(
+		const validationRoster = await validateRosterData(
 			{
 				user: userId,
 				drivers: driverIds,
@@ -171,9 +171,17 @@ router.post(
 			year
 		);
 
-		if (!validation.isValid) {
+		const validateBudget = await validateUserBudget(
+			{
+				user: userId,
+				drivers: driverIds,
+			},
+			year
+		)
+
+		if (!validationRoster.isValid || !validateBudget.isValid) {
 			throw new AppError(
-				`Roster validation failed: ${validation.errors.join(", ")}`,
+				`Roster or budget validation failed: ${validation.errors.join(", ")}`,
 				400
 			);
 		}
