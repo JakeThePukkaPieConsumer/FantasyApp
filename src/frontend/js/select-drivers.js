@@ -1,7 +1,7 @@
 import authModule from "./modules/auth.js";
 import { createApiModules } from "./modules/api.js";
 import notificationModule from "./modules/notification.js";
-import DriverSelectionManager from "./modules/raceUtils.js";
+import DriverSelectionManager from "./modules/driverSelectionManager.js";
 import DriverFilterManager from "./modules/driverFilterManager.js";
 import DriverUIManager from "./modules/driverUIManager.js";
 import DriverRosterManager from "./modules/driverRosterManager.js";
@@ -13,7 +13,11 @@ class DriverSelection {
 		this.notificationModule = notificationModule;
 		this.currentYear = this.authModule.getCurrentYear();
 
-		this.selectionManager = new DriverSelectionManager()
+		this.selectionManager = new DriverSelectionManager(
+			this.apiModules,
+			this.authModule,
+			this.notificationModule
+		);
 
 		this.filterManager = new DriverFilterManager();
 
@@ -39,8 +43,11 @@ class DriverSelection {
 
 		try {
 			await this.selectionManager.init();
+
 			this.filterManager.setDrivers(this.selectionManager.getDrivers());
+
 			this.uiManager.init();
+
 			this.uiManager.showDriverSelection();
 
 			this.hasInitialized = true;
