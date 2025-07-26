@@ -36,12 +36,17 @@ class ApiModule {
 			headers = {},
 			includeAuth = true,
 			cache = "no-store",
+			timeout = 30000,
 		} = options;
+
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), timeout);
 
 		const requestOptions = {
 			method,
 			headers: this.getHeaders(includeAuth, headers),
 			cache,
+			signal: controller.signal,
 		};
 
 		if (
@@ -56,6 +61,7 @@ class ApiModule {
 				`${this.baseURL}${endpoint}`,
 				requestOptions
 			);
+			clearTimeout(timeoutId);
 
 			const contentType = response.headers.get("content-type");
 			let responseData;
@@ -71,8 +77,12 @@ class ApiModule {
 					responseData?.message ||
 					responseData?.error ||
 					responseData ||
-					"Request failed";
-				throw new Error(errorMessage);
+					`HTTP ${response.status}: ${response.statusText}`;
+
+				const error = new Error(errorMessage);
+				error.status = response.status;
+				error.response = responseData;
+				throw error;
 			}
 
 			return {
@@ -81,11 +91,23 @@ class ApiModule {
 				status: response.status,
 			};
 		} catch (error) {
+			clearTimeout(timeoutId);
+
+			if (error.name === "AbortError") {
+				console.error(`API request timeout: ${method} ${endpoint}`);
+				return {
+					success: false,
+					error: "Request timeout",
+					status: 408,
+				};
+			}
+
 			console.error(`API request failed: ${method} ${endpoint}`, error);
 			return {
 				success: false,
 				error: error.message,
 				status: error.status || 0,
+				response: error.response,
 			};
 		}
 	}
@@ -111,6 +133,9 @@ class ApiModule {
 	}
 }
 
+/**
+ * Authentication API
+ */
 class AuthApi extends ApiModule {
 	constructor(authModule) {
 		super(authModule);
@@ -170,6 +195,9 @@ class AuthApi extends ApiModule {
 	}
 }
 
+/**
+ * User management API
+ */
 class UserApi extends ApiModule {
 	constructor(authModule, elevationModule) {
 		super(authModule);
@@ -185,7 +213,7 @@ class UserApi extends ApiModule {
 		if (order) params.append("order", order);
 
 		const queryString = params.toString();
-		const endpoint = `/api/users/${queryString ? `?${queryString}` : ""}`;
+		const endpoint = `/api/users${queryString ? `?${queryString}` : ""}`;
 		return this.get(endpoint);
 	}
 
@@ -266,6 +294,10 @@ class UserApi extends ApiModule {
 		return this.post("/api/users/elevate", { elevationKey });
 	}
 }
+
+/**
+ * Driver management API
+ */
 class DriverApi extends ApiModule {
 	constructor(authModule, elevationModule) {
 		super(authModule);
@@ -319,6 +351,10 @@ class DriverApi extends ApiModule {
 		return this.get(`/api/drivers/${year}/stats`);
 	}
 }
+
+/**
+ * Roster management API - Fixed version
+ */
 class RosterApi extends ApiModule {
 	constructor(authModule) {
 		super(authModule);
@@ -339,8 +375,8 @@ class RosterApi extends ApiModule {
 		return this.get(endpoint);
 	}
 
-	async validateRoster(year) {
-		return this.get(`/api/roster/${year}/validate`)
+	async validateRoster(year, rosterData) {
+		return this.post(`/api/roster/${year}/validate`, rosterData);
 	}
 
 	async getRosterById(year, rosterId) {
@@ -348,11 +384,30 @@ class RosterApi extends ApiModule {
 	}
 
 	async createRoster(year, rosterData) {
-		return this.post(`/api/roster/${year}`, rosterData);
+		// Ensure user ID is properly formatted
+		const formattedData = {
+			...rosterData,
+			user: rosterData.user || rosterData.userId, // Handle both formats
+		};
+
+		// Remove userId if it exists to avoid confusion
+		delete formattedData.userId;
+
+		return this.post(`/api/roster/${year}`, formattedData);
 	}
 
-	async updateRoster(year, userId, rosterId, rosterData) {
-		return this.put(`/api/roster/${year}/${userId}/${rosterId}`, rosterData);
+	async updateRoster(year, rosterId, rosterData) {
+		// Fixed: Remove userId parameter that was causing the undefined issue
+		// The route only needs year and rosterId
+		const formattedData = {
+			...rosterData,
+			user: rosterData.user || rosterData.userId, // Handle both formats
+		};
+
+		// Remove userId if it exists
+		delete formattedData.userId;
+
+		return this.put(`/api/roster/${year}/${rosterId}`, formattedData);
 	}
 
 	async deleteRoster(year, rosterId) {
@@ -368,9 +423,13 @@ class RosterApi extends ApiModule {
 	}
 }
 
+/**
+ * Race management API
+ */
 class RaceApi extends ApiModule {
-	constructor(authModule) {
+	constructor(authModule, elevationModule) {
 		super(authModule);
+		this.elevationModule = elevationModule;
 	}
 
 	async getAvailableYears() {
@@ -429,99 +488,6 @@ class RaceApi extends ApiModule {
 		};
 	}
 
-	async getUpcomingRaces(year, limit = null) {
-		const result = await this.getRaces(year, {
-			sort: "submissionDeadline",
-			order: "asc",
-		});
-
-		if (!result.success) return result;
-
-		const now = new Date();
-		let upcomingRaces =
-			result.data.races?.filter((race) => {
-				if (!race.events || race.events.length === 0) return false;
-
-				const raceStart = new Date(
-					Math.min(...race.events.map((e) => new Date(e.starttime)))
-				);
-				return raceStart > now;
-			}) || [];
-
-		if (limit && upcomingRaces.length > limit) {
-			upcomingRaces = upcomingRaces.slice(0, limit);
-		}
-
-		return {
-			...result,
-			data: {
-				...result.data,
-				races: upcomingRaces,
-				count: upcomingRaces.length,
-			},
-		};
-	}
-
-	async getCompletedRaces(year, limit = null) {
-		const result = await this.getRaces(year, {
-			sort: "submissionDeadline",
-			order: "desc",
-		});
-
-		if (!result.success) return result;
-
-		const now = new Date();
-		let completedRaces =
-			result.data.races?.filter((race) => {
-				if (!race.events || race.events.length === 0) return false;
-
-				const raceEnd = new Date(
-					Math.max(...race.events.map((e) => new Date(e.endtime)))
-				);
-				return raceEnd < now;
-			}) || [];
-
-		if (limit && completedRaces.length > limit) {
-			completedRaces = completedRaces.slice(0, limit);
-		}
-
-		return {
-			...result,
-			data: {
-				...result.data,
-				races: completedRaces,
-				count: completedRaces.length,
-			},
-		};
-	}
-
-	async getSubmissionAvailableRaces(year) {
-		const result = await this.getRaces(year, {
-			sort: "submissionDeadline",
-			order: "asc",
-		});
-
-		if (!result.success) return result;
-
-		const now = new Date();
-		const availableRaces =
-			result.data.races?.filter((race) => {
-				if (race.isLocked) return false;
-
-				const submissionDeadline = new Date(race.submissionDeadline);
-				return now <= submissionDeadline;
-			}) || [];
-
-		return {
-			...result,
-			data: {
-				...result.data,
-				races: availableRaces,
-				count: availableRaces.length,
-			},
-		};
-	}
-
 	async getNextSubmissionRace(year) {
 		const result = await this.getSubmissionAvailableRaces(year);
 
@@ -539,97 +505,28 @@ class RaceApi extends ApiModule {
 		};
 	}
 
-	async getRaceSchedule(year) {
+	async getSubmissionAvailableRaces(year) {
 		const result = await this.getRaces(year, {
-			sort: "roundNumber",
+			sort: "submissionDeadline",
 			order: "asc",
 		});
 
 		if (!result.success) return result;
 
 		const now = new Date();
-		const enrichedRaces =
-			result.data.races?.map((race) => {
+		const availableRaces =
+			result.data.races?.filter((race) => {
+				if (race.isLocked) return false;
 				const submissionDeadline = new Date(race.submissionDeadline);
-				const raceStart =
-					race.events?.length > 0
-						? new Date(
-								Math.min(
-									...race.events.map(
-										(e) => new Date(e.starttime)
-									)
-								)
-						  )
-						: null;
-				const raceEnd =
-					race.events?.length > 0
-						? new Date(
-								Math.max(
-									...race.events.map(
-										(e) => new Date(e.endtime)
-									)
-								)
-						  )
-						: null;
-
-				let status = "unknown";
-				let canSubmit = false;
-
-				if (race.isLocked) {
-					status = "locked";
-				} else if (raceEnd && now > raceEnd) {
-					status = "completed";
-				} else if (
-					raceStart &&
-					now >= raceStart &&
-					raceEnd &&
-					now <= raceEnd
-				) {
-					status = "ongoing";
-				} else if (now <= submissionDeadline) {
-					status = "accepting-submissions";
-					canSubmit = true;
-				} else if (
-					raceStart &&
-					now > submissionDeadline &&
-					now < raceStart
-				) {
-					status = "submissions-closed";
-				} else {
-					status = "upcoming";
-				}
-
-				return {
-					...race,
-					status,
-					canSubmit,
-					timeUntilSubmissionDeadline:
-						submissionDeadline > now ? submissionDeadline - now : 0,
-					timeUntilRaceStart:
-						raceStart && raceStart > now ? raceStart - now : 0,
-					isDeadlineSoon:
-						submissionDeadline > now &&
-						submissionDeadline - now < 24 * 60 * 60 * 1000,
-				};
+				return now <= submissionDeadline;
 			}) || [];
 
 		return {
 			...result,
 			data: {
 				...result.data,
-				races: enrichedRaces,
-				schedule: {
-					total: enrichedRaces.length,
-					accepting: enrichedRaces.filter((r) => r.canSubmit).length,
-					completed: enrichedRaces.filter(
-						(r) => r.status === "completed"
-					).length,
-					upcoming: enrichedRaces.filter(
-						(r) => r.status === "upcoming"
-					).length,
-					ongoing: enrichedRaces.filter((r) => r.status === "ongoing")
-						.length,
-				},
+				races: availableRaces,
+				count: availableRaces.length,
 			},
 		};
 	}
@@ -662,58 +559,6 @@ class RaceApi extends ApiModule {
 		};
 	}
 
-	async getRacesWithDeadlines(year, onlyUpcoming = true) {
-		const result = await this.getRaces(year, {
-			sort: "submissionDeadline",
-			order: "asc",
-		});
-
-		if (!result.success) return result;
-
-		const now = new Date();
-		let racesWithDeadlines =
-			result.data.races?.map((race) => {
-				const submissionDeadline = new Date(race.submissionDeadline);
-				const timeUntilDeadline = submissionDeadline - now;
-
-				return {
-					_id: race._id,
-					name: race.name,
-					roundNumber: race.roundNumber,
-					location: race.location,
-					submissionDeadline: race.submissionDeadline,
-					isLocked: race.isLocked,
-					timeUntilDeadline,
-					deadlinePassed: timeUntilDeadline <= 0,
-					canSubmit: !race.isLocked && timeUntilDeadline > 0,
-					urgency:
-						timeUntilDeadline > 0 &&
-						timeUntilDeadline < 24 * 60 * 60 * 1000
-							? "high"
-							: timeUntilDeadline > 0 &&
-							  timeUntilDeadline < 72 * 60 * 60 * 1000
-							? "medium"
-							: "low",
-				};
-			}) || [];
-
-		if (onlyUpcoming) {
-			racesWithDeadlines = racesWithDeadlines.filter(
-				(race) => !race.deadlinePassed
-			);
-		}
-
-		return {
-			...result,
-			data: {
-				races: racesWithDeadlines,
-				count: racesWithDeadlines.length,
-				urgent: racesWithDeadlines.filter((r) => r.urgency === "high")
-					.length,
-			},
-		};
-	}
-
 	async updateRace(year, raceId, raceData, elevatedToken) {
 		return this.put(`/api/race/${year}/${raceId}`, raceData, {
 			includeAuth: false,
@@ -733,6 +578,9 @@ class RaceApi extends ApiModule {
 	}
 }
 
+/**
+ * Year management API
+ */
 class YearApi extends ApiModule {
 	constructor(authModule, elevationModule) {
 		super(authModule);
@@ -784,16 +632,9 @@ class YearApi extends ApiModule {
 	}
 }
 
-function createApiModules(authModule, elevationModule) {
-	return {
-		auth: new AuthApi(authModule),
-		users: new UserApi(authModule, elevationModule),
-		drivers: new DriverApi(authModule, elevationModule),
-		rosters: new RosterApi(authModule),
-		races: new RaceApi(authModule, elevationModule),
-		years: new YearApi(authModule, elevationModule),
-	};
-}
+/**
+ * Year manager utility
+ */
 class YearManager {
 	constructor(apiModules) {
 		this.api = apiModules;
@@ -851,39 +692,6 @@ class YearManager {
 		return year;
 	}
 
-	async createNewYear(
-		year,
-		sourceYear = null,
-		collections = ["drivers", "users"]
-	) {
-		if (!this.isValidYear(year)) {
-			throw new Error("Invalid year format");
-		}
-
-		const initResult = await this.api.years.initializeYear(
-			year,
-			elevatedToken
-		);
-		if (!initResult.success) {
-			throw new Error(initResult.error);
-		}
-
-		if (sourceYear && this.isValidYear(sourceYear)) {
-			const copyResult = await this.api.years.copyYearData(
-				sourceYear,
-				year,
-				collections,
-				elevatedToken
-			);
-			if (!copyResult.success) {
-				throw new Error(copyResult.error);
-			}
-		}
-
-		await this.loadAvailableYears();
-		return year;
-	}
-
 	formatYearForDisplay(year) {
 		return `${year} Season`;
 	}
@@ -895,6 +703,20 @@ class YearManager {
 			hasData: yearData.driverCount > 0 || yearData.userCount > 0,
 		}));
 	}
+}
+
+/**
+ * Factory function to create all API modules
+ */
+function createApiModules(authModule, elevationModule) {
+	return {
+		auth: new AuthApi(authModule),
+		users: new UserApi(authModule, elevationModule),
+		drivers: new DriverApi(authModule, elevationModule),
+		rosters: new RosterApi(authModule),
+		races: new RaceApi(authModule, elevationModule),
+		years: new YearApi(authModule, elevationModule),
+	};
 }
 
 export {

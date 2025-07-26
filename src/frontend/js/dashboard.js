@@ -1,15 +1,30 @@
 import authModule from "./modules/auth.js";
 import { createApiModules } from "./modules/api.js";
+import { loadRaceInformation } from "./modules/raceUtils.js";
 import notificationModule from "./modules/notification.js";
 
 class Dashboard {
 	constructor() {
 		this.apiModules = createApiModules(authModule);
+		this.authModule = authModule;
 		this.currentUser = null;
+		this.currentRace = null;
+		this.currentYear = this.authModule.getCurrentYear();
+
+		this.getRaceInfo = async () => {
+			const result = await loadRaceInformation({
+				apiModules: this.apiModules,
+				currentYear: this.currentYear,
+			});
+			this.currentRace = result.currentRace;
+			return result;
+		};
 	}
 
 	async init() {
 		console.log("Initializing dashboard...");
+
+		await this.getRaceInfo();
 
 		try {
 			await this.checkAuthentication();
@@ -102,7 +117,6 @@ class Dashboard {
 		if (dashboard) dashboard.style.display = "block";
 
 		this.updateUserInfo();
-
 		this.updateAdminAccess();
 
 		console.log("Dashboard displayed");
@@ -122,6 +136,21 @@ class Dashboard {
 		if (!this.currentUser) return;
 
 		authModule.updateBudgetDisplays(this.currentUser.budget);
+
+		const nextRace = document.getElementById("next-race-stat");
+		if (nextRace) {
+			nextRace.textContent = this.currentRace.name || "Unknown Race";
+		}
+
+		const deadline = new Date(this.currentRace.submissionDeadline);
+		const formattedDateDeadline = `${String(deadline.getDate()).padStart(
+			2,
+			"0"
+		)}/${String(deadline.getMonth() + 1).padStart(2, "0")}`;
+
+		const nextRaceDate = (document.getElementById(
+			"next-race-date-stat"
+		).textContent = formattedDateDeadline);
 
 		const welcomeTitle = document.querySelector(".dashboard-welcome h2");
 		if (welcomeTitle) {
