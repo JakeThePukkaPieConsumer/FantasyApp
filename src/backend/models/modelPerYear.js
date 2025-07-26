@@ -10,13 +10,22 @@ const modelCache = {
 	rosters: {},
 };
 
+/**
+ * Validate if the provided year is between 2000 and currentYear + 5
+ * @param {string|number} year
+ * @returns {boolean}
+ */
 function validateYear(year) {
 	const yearNum = parseInt(year);
 	const currentYear = new Date().getFullYear();
 	return yearNum >= 2000 && yearNum <= currentYear + 5;
 }
 
-function getDriverModelForYear(year) {
+/**
+ * Throws error if year is invalid.
+ * @param {string|number} year
+ */
+function ensureValidYear(year) {
 	if (!validateYear(year)) {
 		throw new Error(
 			`Invalid year: ${year}. Must be between 2000 and ${
@@ -24,6 +33,15 @@ function getDriverModelForYear(year) {
 			}`
 		);
 	}
+}
+
+/**
+ * Get or create Mongoose Driver model for a specific year.
+ * @param {string|number} year
+ * @returns {mongoose.Model} Driver model for that year
+ */
+function getDriverModelForYear(year) {
+	ensureValidYear(year);
 
 	const modelName = `Driver_${year}`;
 	const collectionName = `drivers_${year}`;
@@ -38,14 +56,13 @@ function getDriverModelForYear(year) {
 	return model;
 }
 
+/**
+ * Get or create Mongoose User model for a specific year.
+ * @param {string|number} year
+ * @returns {mongoose.Model} User model for that year
+ */
 function getUserModelForYear(year) {
-	if (!validateYear(year)) {
-		throw new Error(
-			`Invalid year: ${year}. Must be between 2000 and ${
-				new Date().getFullYear() + 5
-			}`
-		);
-	}
+	ensureValidYear(year);
 
 	const modelName = `User_${year}`;
 	const collectionName = `user_${year}`;
@@ -60,14 +77,13 @@ function getUserModelForYear(year) {
 	return model;
 }
 
+/**
+ * Get or create Mongoose Race model for a specific year.
+ * @param {string|number} year
+ * @returns {mongoose.Model} Race model for that year
+ */
 function getRaceModelForYear(year) {
-	if (!validateYear(year)) {
-		throw new Error(
-			`Invalid year: ${year}. Must be between 200 and ${
-				new Date().getFullYear() + 5
-			}`
-		);
-	}
+	ensureValidYear(year);
 
 	const modelName = `Race_${year}`;
 	const collectionName = `races_${year}`;
@@ -86,14 +102,13 @@ function getRaceModelForYear(year) {
 	return model;
 }
 
+/**
+ * Get or create Mongoose Roster model for a specific year.
+ * @param {string|number} year
+ * @returns {mongoose.Model} Roster model for that year
+ */
 function getRosterModelForYear(year) {
-	if (!validateYear(year)) {
-		throw new Error(
-			`Invalid year: ${year}. Must be between 200 and ${
-				new Date().getFullYear() + 5
-			}`
-		);
-	}
+	ensureValidYear(year);
 
 	const modelName = `Roster_${year}`;
 	const collectionName = `rosters_${year}`;
@@ -131,6 +146,10 @@ function getRosterModelForYear(year) {
 	return model;
 }
 
+/**
+ * Lists all years with existing collections (drivers, users, races, rosters).
+ * @returns {Promise<number[]>} Sorted array of years (descending)
+ */
 async function getAvailableYears() {
 	try {
 		const collections = await mongoose.connection.db
@@ -154,10 +173,13 @@ async function getAvailableYears() {
 	}
 }
 
+/**
+ * Initializes collections (creates indexes) for all models for a given year.
+ * @param {string|number} year
+ * @returns {Promise<Object>} Object containing all initialized models
+ */
 async function initializeYearCollections(year) {
-	if (!validateYear(year)) {
-		throw new Error(`Invalid year: ${year}`);
-	}
+	ensureValidYear(year);
 
 	try {
 		const models = {
@@ -185,14 +207,21 @@ async function initializeYearCollections(year) {
 	}
 }
 
+/**
+ * Copies data from source year to target year for specified collections.
+ * Resets points and race statuses accordingly.
+ * @param {string|number} sourceYear
+ * @param {string|number} targetYear
+ * @param {string[]} [collections=["drivers", "users"]] - Collections to copy: "drivers", "users", "races"
+ * @returns {Promise<Object>} Summary of copied records count and errors
+ */
 async function copyYearData(
 	sourceYear,
 	targetYear,
 	collections = ["drivers", "users"]
 ) {
-	if (!validateYear(sourceYear) || !validateYear(targetYear)) {
-		throw new Error("Invalid year provided");
-	}
+	ensureValidYear(sourceYear);
+	ensureValidYear(targetYear);
 
 	const summary = {
 		drivers: 0,
@@ -240,14 +269,16 @@ async function copyYearData(
 
 			const races = await SourceRace.find().lean();
 			if (races.length > 0) {
-				const racesToInsert = races.map(({ _id, ...race }) => ({
-					...race,
-					isLocked: false,
-					events: race.events.map(({ _id, ...event }) => ({
-						...event,
-						status: "scheduled",
-					})),
-				}));
+				const racesToInsert = races.map(
+					({ _id, events = [], ...race }) => ({
+						...race,
+						isLocked: false,
+						events: events.map(({ _id, ...event }) => ({
+							...event,
+							status: "scheduled",
+						})),
+					})
+				);
 
 				await TargetRace.insertMany(racesToInsert);
 				summary.races = racesToInsert.length;
@@ -261,16 +292,22 @@ async function copyYearData(
 	}
 }
 
+/**
+ * Clears all cached models for drivers, users, races, and rosters.
+ */
 function clearModelCache() {
 	Object.keys(modelCache).forEach((type) => {
 		modelCache[type] = {};
 	});
 }
 
+/**
+ * Retrieves summary statistics for a given year.
+ * @param {string|number} year
+ * @returns {Promise<Object>} Statistics including counts and totals
+ */
 async function getYearStatistics(year) {
-	if (!validateYear(year)) {
-		throw new Error(`Invalid year: ${year}`);
-	}
+	ensureValidYear(year);
 
 	try {
 		const Driver = getDriverModelForYear(year);
@@ -308,9 +345,7 @@ async function getYearStatistics(year) {
 				count: userCount,
 				totalBudget: totalUserBudget[0]?.total || 0,
 			},
-			races: {
-				count: raceCount,
-			},
+			races: { count: raceCount },
 			rosters: {
 				count: rosterCount,
 			},

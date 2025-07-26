@@ -196,7 +196,7 @@ class ModalModule {
 
 		if (nameEl) nameEl.value = driver.name;
 		if (valueEl) valueEl.value = driver.value;
-		if (pointsEl) valueEl.value = driver.points;
+		if (pointsEl) pointsEl.value = driver.points;
 		if (imageEl) imageEl.value = driver.imageURL || "";
 		if (descEl) descEl.value = driver.description || "";
 

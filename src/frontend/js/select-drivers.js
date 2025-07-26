@@ -168,7 +168,7 @@ class DriverSelection {
 
 		let driversToRender = [...this.filteredDrivers];
 		if (this.sortByValue) {
-			driversToRender.sort((a, b) => b.value - a.value);
+			driversToRender.sort((a, b) => Number(b.value) - Number(a.value));
 		} else {
 			driversToRender.sort((a, b) => a.name.localeCompare(b.name));
 		}
@@ -393,14 +393,7 @@ class DriverSelection {
 		}
 
 		try {
-			notificationModule.showLoading("Saving your team...", {
-				duration: 2000,
-			});
-
-			setTimeout(() => {
-				notificationModule.hideLoading();
-				notificationModule.success("Team saved successfully!");
-			}, 2000);
+			
 		} catch (error) {
 			console.error("Error saving team:", error);
 			notificationModule.error("Failed to save team. Please try again.");

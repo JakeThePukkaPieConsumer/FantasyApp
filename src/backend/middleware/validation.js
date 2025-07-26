@@ -3,6 +3,12 @@ const { AppError } = require("./errorHandler");
 const mongoose = require("mongoose");
 const { validateYear } = require("../models/modelPerYear");
 
+/**
+ * @brief Middleware to handle validation errors from express-validator.
+ * @param {object} req - Express request object.
+ * @param {object} res - Express response object.
+ * @param {Function} next - Next middleware function.
+ */
 const handleValidationErrors = (req, res, next) => {
 	const errors = validationResult(req);
 	if (!errors.isEmpty()) {
@@ -15,6 +21,10 @@ const handleValidationErrors = (req, res, next) => {
 	next();
 };
 
+/**
+ * @brief Validation rules for elevation key.
+ * Checks if 'elevationKey' is not empty.
+ */
 const elevationValidation = [
 	body("elevationKey")
 		.notEmpty()
@@ -24,6 +34,10 @@ const elevationValidation = [
 	handleValidationErrors,
 ];
 
+/**
+ * @brief Validation rules for login.
+ * Validates username, PIN (exact 4 digits), and optional year.
+ */
 const loginValidation = [
 	body("username")
 		.trim()
@@ -55,6 +69,10 @@ const loginValidation = [
 	handleValidationErrors,
 ];
 
+/**
+ * @brief Validation rules for creating a new user.
+ * Validates username, pin, role, and budget.
+ */
 const createUserValidation = [
 	body("username")
 		.trim()
@@ -86,6 +104,10 @@ const createUserValidation = [
 	handleValidationErrors,
 ];
 
+/**
+ * @brief Validation rules for updating a user.
+ * Optional checks on username, pin, role, and budget.
+ */
 const updateUserValidation = [
 	body("username")
 		.optional()
@@ -115,6 +137,10 @@ const updateUserValidation = [
 	handleValidationErrors,
 ];
 
+/**
+ * @brief Validation rules for creating a driver.
+ * Checks name, value, and categories.
+ */
 const createDriverValidation = [
 	body("name")
 		.trim()
@@ -136,6 +162,10 @@ const createDriverValidation = [
 	handleValidationErrors,
 ];
 
+/**
+ * @brief Validation rules for updating a driver.
+ * Optional fields name, value, and categories.
+ */
 const updateDriverValidation = [
 	body("name")
 		.optional()
@@ -159,6 +189,10 @@ const updateDriverValidation = [
 	handleValidationErrors,
 ];
 
+/**
+ * @brief Validation rules for creating a roster.
+ * Checks user, drivers, budgetUsed, pointsEarned, and race fields.
+ */
 const createRosterValidation = [
 	body("user")
 		.notEmpty()
@@ -185,6 +219,10 @@ const createRosterValidation = [
 	handleValidationErrors,
 ];
 
+/**
+ * @brief Validation rules for updating a roster.
+ * Optional fields: user, drivers, budgetUsed, pointsEarned, race.
+ */
 const updateRosterValidation = [
 	body("user")
 		.optional()
@@ -209,6 +247,11 @@ const updateRosterValidation = [
 	handleValidationErrors,
 ];
 
+/**
+ * @brief Middleware to validate a MongoDB ObjectId in route parameters.
+ * @param {string} [paramName='id'] - Name of the param to validate.
+ * @returns {Function} Middleware function.
+ */
 const mongoIdValidation = (paramName = "id") => {
 	return (req, res, next) => {
 		const id = req.params[paramName];
@@ -225,6 +268,9 @@ const mongoIdValidation = (paramName = "id") => {
 	};
 };
 
+/**
+ * @brief Validation rules for a 4-digit year param.
+ */
 const yearValidation = [
 	param("year")
 		.matches(/^\d{4}$/)
@@ -242,6 +288,10 @@ const yearValidation = [
 	handleValidationErrors,
 ];
 
+/**
+ * @brief Validation rules for copying data between years.
+ * Validates sourceYear, targetYear, and optional collections array.
+ */
 const copyYearValidation = [
 	body("sourceYear")
 		.matches(/^\d{4}$/)
@@ -282,6 +332,9 @@ const copyYearValidation = [
 	handleValidationErrors,
 ];
 
+/**
+ * @brief Middleware to check if elevation system secret is configured.
+ */
 const checkElevationConfig = (req, res, next) => {
 	if (!process.env.ELEVATION_SECRET) {
 		return next(new AppError("Elevation system not configured", 500));
