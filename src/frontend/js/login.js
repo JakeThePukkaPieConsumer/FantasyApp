@@ -70,23 +70,26 @@ class LoginPage {
 			});
 
 			pinInput.addEventListener("keydown", (e) => {
+				const allowedKeys = ["Backspace", "Tab", "Escape", "Enter", "Delete"];
+
+				const ctrlAllowedKeys = ["a", "c", "v", "x"];
+
 				if (
-					[8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
-					(e.keyCode === 65 && e.ctrlKey === true) ||
-					(e.keyCode === 67 && e.ctrlKey === true) ||
-					(e.keyCode === 86 && e.ctrlKey === true) ||
-					(e.keyCode === 88 && e.ctrlKey === true)
+					allowedKeys.includes(e.key) ||
+					(e.ctrlKey && ctrlAllowedKeys.includes(e.key.toLowerCase()))
 				) {
 					return;
 				}
 
-				if (
-					(e.shiftKey || e.keyCode < 48 || e.keyCode > 57) &&
-					(e.keyCode < 96 || e.keyCode > 105)
-				) {
+				const isNumberKey =
+					(e.key >= "0" && e.key <= "9") ||
+					(e.code.startsWith("Numpad") && e.key >= "0" && e.key <= "9");
+
+				if (e.shiftKey || !isNumberKey) {
 					e.preventDefault();
 				}
 			});
+
 		}
 		const usernameSelect = document.getElementById("username");
 		if (usernameSelect) {
