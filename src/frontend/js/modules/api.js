@@ -185,9 +185,7 @@ class UserApi extends ApiModule {
 		if (order) params.append("order", order);
 
 		const queryString = params.toString();
-		const endpoint = `/api/admin/users/${
-			queryString ? `?${queryString}` : ""
-		}`;
+		const endpoint = `/api/users/${queryString ? `?${queryString}` : ""}`;
 		return this.get(endpoint);
 	}
 
@@ -208,7 +206,7 @@ class UserApi extends ApiModule {
 			data.year = year;
 		}
 
-		return this.post("/api/admin/users", data, {
+		return this.post("/api/users", data, {
 			includeAuth: false,
 			headers: { Authorization: `Bearer ${elevatedToken}` },
 		});
@@ -220,7 +218,7 @@ class UserApi extends ApiModule {
 			data.year = year;
 		}
 
-		return this.put(`/api/admin/users/${userId}`, data, {
+		return this.put(`/api/users/${userId}`, data, {
 			includeAuth: false,
 			headers: { Authorization: `Bearer ${elevatedToken}` },
 		});
@@ -231,7 +229,7 @@ class UserApi extends ApiModule {
 		if (year) params.append("year", year);
 
 		const queryString = params.toString();
-		const endpoint = `/api/admin/users/${userId}${
+		const endpoint = `/api/users/${userId}${
 			queryString ? `?${queryString}` : ""
 		}`;
 
@@ -247,7 +245,7 @@ class UserApi extends ApiModule {
 			data.year = year;
 		}
 
-		return this.post(`/api/admin/users/${userId}/reset-pin`, data, {
+		return this.post(`/api/users/${userId}/reset-pin`, data, {
 			includeAuth: false,
 			headers: { Authorization: `Bearer ${elevatedToken}` },
 		});
@@ -258,14 +256,14 @@ class UserApi extends ApiModule {
 		if (year) params.append("year", year);
 
 		const queryString = params.toString();
-		const endpoint = `/api/admin/users/stats${
+		const endpoint = `/api/users/stats${
 			queryString ? `?${queryString}` : ""
 		}`;
 		return this.get(endpoint);
 	}
 
 	async requestElevation(elevationKey) {
-		return this.post("/api/admin/users/elevate", { elevationKey });
+		return this.post("/api/users/elevate", { elevationKey });
 	}
 }
 class DriverApi extends ApiModule {
@@ -367,17 +365,25 @@ class RosterApi extends ApiModule {
 }
 
 class RaceApi extends ApiModule {
-	constructor(authModule, elevationModule) {
+	constructor(authModule) {
 		super(authModule);
-		this.elevationModule = elevationModule;
 	}
 
 	async getRaces(year, options = {}) {
-		const { status, sort = "roundNumber", order = "asc" } = options;
+		const {
+			status,
+			sort = "roundNumber",
+			order = "asc",
+			upcoming = false,
+			current = false,
+		} = options;
 		const params = new URLSearchParams();
+
 		if (status) params.append("status", status);
 		if (sort) params.append("sort", sort);
 		if (order) params.append("order", order);
+		if (upcoming) params.append("upcoming", "true");
+		if (current) params.append("current", "true");
 
 		const queryString = params.toString();
 		const endpoint = `/api/race/${year}${
@@ -386,15 +392,40 @@ class RaceApi extends ApiModule {
 		return this.get(endpoint);
 	}
 
+	async getUpcomingRaces(year) {
+		return this.get(`/api/race/${year}/upcoming`);
+	}
+
+	async getCurrentRace(year) {
+		return this.get(`/api/race/${year}/current`);
+	}
+
+	async getCompletedRaces(year) {
+		return this.get(`/api/race/${year}/completed`);
+	}
+
+	async getRaceByRound(year, roundNumber) {
+		return this.get(`/api/race/${year}/round/${roundNumber}`);
+	}
+
 	async getRaceById(year, raceId) {
 		return this.get(`/api/race/${year}/${raceId}`);
 	}
 
-	async createRace(year, raceData, elevatedToken) {
-		return this.post(`/api/race/${year}`, raceData, {
-			includeAuth: false,
-			headers: { Authorization: `Bearer ${elevatedToken}` },
-		});
+	async getRaceStats(year) {
+		return this.get(`/api/race/${year}/stats`);
+	}
+
+	async getRacesWithDeadlines(year) {
+		return this.get(`/api/race/${year}/deadlines`);
+	}
+
+	async checkSubmissionStatus(year, raceId) {
+		return this.get(`/api/race/${year}/${raceId}/submission-status`);
+	}
+
+	async getRaceCalendar(year) {
+		return this.get(`/api/race/${year}/calendar`);
 	}
 
 	async updateRace(year, raceId, raceData, elevatedToken) {
@@ -404,15 +435,37 @@ class RaceApi extends ApiModule {
 		});
 	}
 
-	async deleteRace(year, raceId, elevatedToken) {
-		return this.delete(`/api/race/${year}/${raceId}`, {
-			includeAuth: false,
-			headers: { Authorization: `Bearer ${elevatedToken}` },
-		});
+	async toggleRaceLock(year, raceId, isLocked, elevatedToken) {
+		return this.put(
+			`/api/race/${year}/${raceId}/lock`,
+			{ isLocked },
+			{
+				includeAuth: false,
+				headers: { Authorization: `Bearer ${elevatedToken}` },
+			}
+		);
 	}
 
-	async getRaceStats(year) {
-		return this.get(`/api/race/${year}/stats`);
+	async updateRaceResults(year, raceId, results, elevatedToken) {
+		return this.put(
+			`/api/race/${year}/${raceId}/results`,
+			{ results },
+			{
+				includeAuth: false,
+				headers: { Authorization: `Bearer ${elevatedToken}` },
+			}
+		);
+	}
+
+	async batchUpdateRaces(year, updates, elevatedToken) {
+		return this.put(
+			`/api/race/${year}/batch-update`,
+			{ updates },
+			{
+				includeAuth: false,
+				headers: { Authorization: `Bearer ${elevatedToken}` },
+			}
+		);
 	}
 }
 
@@ -423,20 +476,20 @@ class YearApi extends ApiModule {
 	}
 
 	async getAvailableYears() {
-		return this.get("/api/year/");
+		return this.get("/api/years/");
 	}
 
 	async getAllYearStats() {
-		return this.get("/api/year/stats");
+		return this.get("/api/years/stats");
 	}
 
 	async getYearStats(year) {
-		return this.get(`/api/year/${year}/stats`);
+		return this.get(`/api/years/${year}/stats`);
 	}
 
 	async initializeYear(year, elevatedToken) {
 		return this.post(
-			`/api/year/${year}/initialize`,
+			`/api/years/${year}/initialize`,
 			{},
 			{
 				includeAuth: false,
@@ -454,12 +507,12 @@ class YearApi extends ApiModule {
 	}
 
 	async compareYears(year1, year2) {
-		return this.get(`/api/year/${year1}/compare/${year2}`);
+		return this.get(`/api/years/${year1}/compare/${year2}`);
 	}
 
 	async deleteYear(year, elevatedToken) {
 		const data = { confirmDelete: "DELETE_ALL_DATA" };
-		return this.delete(`/api/year/${year}`, {
+		return this.delete(`/api/years/${year}`, {
 			includeAuth: false,
 			headers: { Authorization: `Bearer ${elevatedToken}` },
 			data,
