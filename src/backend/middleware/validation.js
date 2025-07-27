@@ -203,34 +203,32 @@ const updateRosterValidation = [
 	handleValidationErrors,
 ];
 
-const raceValidation = [
+const ppmCalculationValidation = [
 	body("raceId")
 		.notEmpty()
 		.withMessage("Race ID is required")
 		.isMongoId()
 		.withMessage("Race ID must be a valid MongoDB ObjectId"),
-	body("totalMeetingPoints")
-		.isNumeric()
-		.withMessage("Total meeting points must be a number")
-		.isFloat({ min: 0 })
-		.withMessage("Total meeting points must be non-negative"),
-	body("driverResults")
-		.isArray({ min: 1 })
-		.withMessage("Driver results must be a non-empty array"),
-	body("driverResults.*.driverId")
-		.isMongoId()
-		.withMessage("Each driver ID must be a valid MongoDB ObjectId"),
-	body("driverResults.*.pointsGained")
-		.isNumeric()
-		.withMessage("Points gained must be a number")
-		.isFloat({ min: 0 })
-		.withMessage("Points gained must be non-negative"),
 	body("venuePoints")
 		.optional()
 		.isNumeric()
 		.withMessage("Venue points must be a number")
 		.isFloat({ min: 0 })
 		.withMessage("Venue points must be non-negative"),
+	body("driverResults")
+		.optional()
+		.isArray()
+		.withMessage("Driver results must be an array"),
+	body("driverResults.*.driverId")
+		.optional()
+		.isMongoId()
+		.withMessage("Each driver ID must be a valid MongoDB ObjectId"),
+	body("driverResults.*.pointsGained")
+		.optional()
+		.isNumeric()
+		.withMessage("Points gained must be a number")
+		.isFloat({ min: 0 })
+		.withMessage("Points gained must be non-negative"),
 	handleValidationErrors,
 ];
 
@@ -307,7 +305,7 @@ module.exports = {
 	updateDriverValidation,
 	createRosterValidation,
 	updateRosterValidation,
-	raceValidation,
+	ppmCalculationValidation,
 	mongoIdValidation,
 	yearValidation,
 	copyYearValidation,

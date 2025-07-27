@@ -20,4 +20,15 @@ const driverSchema = new mongoose.Schema({
 	description: { type: String, required: false },
 });
 
+driverSchema.virtual("value").get(function () {
+	return this.currentValue;
+});
+
+driverSchema.virtual("value").set(function (val) {
+	this.currentValue = val;
+});
+
+driverSchema.set("toJSON", { virtuals: true });
+driverSchema.set("toObject", { virtuals: true });
+
 module.exports = driverSchema;
