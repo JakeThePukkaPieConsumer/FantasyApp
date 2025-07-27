@@ -209,11 +209,6 @@ const ppmCalculationValidation = [
 		.withMessage("Race ID is required")
 		.isMongoId()
 		.withMessage("Race ID must be a valid MongoDB ObjectId"),
-	body("totalMeetingPoints")
-		.isNumeric()
-		.withMessage("Total meeting points must be a number")
-		.isFloat({ min: 0 })
-		.withMessage("Total meeting points must be non-negative"),
 	body("venuePoints")
 		.optional()
 		.isNumeric()

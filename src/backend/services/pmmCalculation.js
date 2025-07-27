@@ -36,8 +36,10 @@ class PPMCalculationService {
 				);
 			});
 
+
 			const totalDriverValue = drivers.reduce((sum, driver) => {
-				const driverValue = driver.currentValue || driver.value || 0;
+				console.log(driver.currentValue);
+				const driverValue = driver.currentValue ?? 0;
 				console.log(
 					`Adding driver ${driver.name} value: ${driverValue}`
 				);
@@ -118,7 +120,6 @@ class PPMCalculationService {
 	async processRaceResults(
 		raceId,
 		driverResults,
-		totalMeetingPoints,
 		venuePoints = 930
 	) {
 		const session = await mongoose.startSession();
@@ -172,7 +173,7 @@ class PPMCalculationService {
 					pointsGained,
 					expectedPoints
 				);
-				
+
 				const newValue = this.calculateNewDriverValue(
 					previousValue,
 					pointsGained,
@@ -214,7 +215,6 @@ class PPMCalculationService {
 						ppmData: {
 							ppm,
 							venuePoints,
-							totalMeetingPoints,
 							totalDriverValue,
 							processedAt: new Date(),
 							driverUpdates,
@@ -233,7 +233,6 @@ class PPMCalculationService {
 				roundNumber: race.roundNumber,
 				ppm,
 				venuePoints,
-				totalMeetingPoints,
 				totalDriverValue,
 				driversProcessed: driverUpdates.length,
 				driverUpdates,
@@ -264,7 +263,6 @@ class PPMCalculationService {
 				roundNumber: race.roundNumber,
 				ppm: race.ppmData.ppm,
 				venuePoints: race.ppmData.venuePoints,
-				totalMeetingPoints: race.ppmData.totalMeetingPoints,
 				totalDriverValue: race.ppmData.totalDriverValue,
 				processedAt: race.ppmData.processedAt,
 			}));
@@ -294,7 +292,6 @@ class PPMCalculationService {
 					roundNumber: race.roundNumber,
 					ppm: race.ppmData.ppm,
 					venuePoints: race.ppmData.venuePoints,
-					totalMeetingPoints: race.ppmData.totalMeetingPoints,
 					totalDriverValue: race.ppmData.totalDriverValue,
 					processedAt: race.ppmData.processedAt,
 				})),
