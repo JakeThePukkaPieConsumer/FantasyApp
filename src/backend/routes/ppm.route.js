@@ -3,7 +3,7 @@ const { body } = require("express-validator");
 const PPMCalculationService = require("../services/pmmCalculation");
 const {
 	yearValidation,
-	raceValidation,
+	ppmCalculationValidation,
 	mongoIdValidation,
 	handleValidationErrors,
 } = require("../middleware/validation");
@@ -13,12 +13,12 @@ const { AppError, catchAsync } = require("../middleware/errorHandler");
 
 const router = express.Router();
 
+// Calculate PPM (preview only)
 router.post(
 	"/:year/calculate-ppm",
 	authenticateToken,
-	checkRole("admin"),
 	yearValidation,
-	raceValidation,
+	ppmCalculationValidation,
 	catchAsync(async (req, res) => {
 		const year = req.params.year;
 		const { raceId, totalMeetingPoints, venuePoints = 930 } = req.body;
@@ -39,6 +39,38 @@ router.post(
 	})
 );
 
+router.post(
+	"/:year/process-race",
+	authenticateToken,
+	checkRole("admin"),
+	checkElevated,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const {
+			raceId,
+			venuePoints = 930,
+			driverResults,
+		} = req.body;
+
+		const ppmService = new PPMCalculationService(year);
+		const result = await ppmService.processRaceResults(
+			raceId,
+			driverResults,
+			totalMeetingPoints,
+			venuePoints
+		);
+
+		res.status(200).json({
+			success: true,
+			message: "Race results processed and PPM applied successfully",
+			year: parseInt(year),
+			data: result,
+		});
+	})
+);
+
+// Get PPM history (recent races)
 router.get(
 	"/:year/ppm-history",
 	authenticateToken,
@@ -63,6 +95,26 @@ router.get(
 	})
 );
 
+// Get all season PPM data
+router.get(
+	"/:year/season-ppm",
+	authenticateToken,
+	yearValidation,
+	catchAsync(async (req, res) => {
+		const year = req.params.year;
+		const ppmService = new PPMCalculationService(year);
+
+		const seasonData = await ppmService.getAllSeasonPPM();
+
+		res.status(200).json({
+			success: true,
+			message: "All season PPM data retrieved successfully",
+			...seasonData,
+		});
+	})
+);
+
+// Get driver analysis
 router.get(
 	"/:year/driver-analysis/:driverId",
 	authenticateToken,
@@ -83,6 +135,7 @@ router.get(
 	})
 );
 
+// Get season summary
 router.get(
 	"/:year/season-summary",
 	authenticateToken,
@@ -117,6 +170,12 @@ router.get(
 		const avgPPM =
 			history.reduce((sum, race) => sum + race.ppm, 0) / totalRaces;
 		const avgMeetingPoints = totalPoints / totalRaces;
+		const avgVenuePoints =
+			history.reduce((sum, race) => sum + (race.venuePoints || 930), 0) /
+			totalRaces;
+		const avgTotalDriverValue =
+			history.reduce((sum, race) => sum + race.totalDriverValue, 0) /
+			totalRaces;
 
 		// Get highest and lowest PPM races
 		const sortedByPPM = [...history].sort((a, b) => b.ppm - a.ppm);
@@ -131,15 +190,22 @@ router.get(
 				totalPoints,
 				avgPPM: Math.round(avgPPM * 1000000) / 1000000, // Round to 6 decimal places
 				avgMeetingPoints: Math.round(avgMeetingPoints * 100) / 100,
+				avgVenuePoints: Math.round(avgVenuePoints * 100) / 100,
+				avgTotalDriverValue:
+					Math.round(avgTotalDriverValue * 100) / 100,
 				highestPPM: {
 					race: highestPPM.raceName,
 					round: highestPPM.roundNumber,
 					ppm: highestPPM.ppm,
+					venuePoints: highestPPM.venuePoints,
+					totalDriverValue: highestPPM.totalDriverValue,
 				},
 				lowestPPM: {
 					race: lowestPPM.raceName,
 					round: lowestPPM.roundNumber,
 					ppm: lowestPPM.ppm,
+					venuePoints: lowestPPM.venuePoints,
+					totalDriverValue: lowestPPM.totalDriverValue,
 				},
 				recentRaces: history.slice(0, 5), // Last 5 races
 			},
@@ -147,6 +213,7 @@ router.get(
 	})
 );
 
+// Get value changes from most recent race
 router.get(
 	"/:year/value-changes",
 	authenticateToken,
@@ -201,6 +268,8 @@ router.get(
 					name: latestRace.raceName,
 					round: latestRace.roundNumber,
 					ppm: latestRace.ppm,
+					venuePoints: latestRace.venuePoints,
+					totalDriverValue: latestRace.totalDriverValue,
 				},
 				increases: increases.map((update) => ({
 					driverName: update.driverName,
@@ -209,6 +278,7 @@ router.get(
 					valueChange: update.valueChange,
 					pointsGained: update.pointsGained,
 					expectedPoints: update.expectedPoints,
+					percentageChange: update.percentageChange,
 				})),
 				decreases: decreases.map((update) => ({
 					driverName: update.driverName,
@@ -217,6 +287,7 @@ router.get(
 					valueChange: update.valueChange,
 					pointsGained: update.pointsGained,
 					expectedPoints: update.expectedPoints,
+					percentageChange: update.percentageChange,
 				})),
 			},
 		});
